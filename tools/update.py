@@ -50,6 +50,10 @@ def main(folder, date, path="data.json"):
                      "type": r.get("type", "V").strip() or "V", "secteur": (r.get("secteur") or "").strip() or None,
                      "prix": prix, **champs, "url": url, "image": (r.get("image") or "").strip() or None,
                      "first_seen": date, "last_seen": date, "statut": "actif", "hist": [[date, prix]]}
+                for k in ("f", "quartier", "date_annonce", "statut_annonce"):
+                    v = (r.get(k) or "").strip()
+                    if v:
+                        b[k] = v
                 data["biens"].append(b); by_id[bid] = b
                 ev.append({"date": date, "type": "nouveau", "id": bid, "prix": prix})
                 continue
@@ -64,6 +68,10 @@ def main(folder, date, path="data.json"):
             b["prix"] = prix
             for k, v in champs.items():
                 if v is not None:
+                    b[k] = v
+            for k in ("f", "quartier", "date_annonce", "statut_annonce"):
+                v = (r.get(k) or "").strip()
+                if v:
                     b[k] = v
             img = (r.get("image") or "").strip()
             if img:
