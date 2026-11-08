@@ -121,11 +121,15 @@ const safeUrl = u => /^https?:\/\//.test(u || "") ? u : "#";
 let D, ACT, NOUS, CONC, BYID, MATCH;
 
 function sameBien(a, b) {
-  if (cat(a.type) !== cat(b.type) || !a.surface || !b.surface || Math.abs(a.surface - b.surface) > 2) return false;
-  const tKnown = a.terrain && b.terrain;
-  if (tKnown && Math.abs(a.terrain - b.terrain) > 15) return false;
+  // Rapprochement prudent : même catégorie, même nombre de chambres si connu, surface et terrain quasi identiques.
+  if (cat(a.type) !== cat(b.type) || !a.surface || !b.surface) return false;
+  const dS = Math.abs(a.surface - b.surface);
+  if (dS > 2) return false;
+  if (a.chambres && b.chambres && a.chambres !== b.chambres) return false;
   if (a.prix && b.prix && Math.abs(b.prix / a.prix - 1) > 0.25) return false;
-  return (tKnown && Math.abs(a.terrain - b.terrain) <= 10) || (a.prix && b.prix && Math.abs(b.prix / a.prix - 1) <= 0.005);
+  const tKnown = a.terrain && b.terrain, dT = tKnown ? Math.abs(a.terrain - b.terrain) : null;
+  if (tKnown) return dS === 0 ? dT <= 10 : dT <= 5;
+  return dS === 0 && a.prix && b.prix && Math.abs(b.prix / a.prix - 1) <= 0.005;
 }
 function comparables(b) {
   let pool = CONC.filter(c => cat(c.type) === cat(b.type) && pm2(c) && b.surface && c.surface >= b.surface * 0.7 && c.surface <= b.surface * 1.3);
@@ -167,15 +171,15 @@ function viewSemaine() {
     ["nouveau", by("nouveau").length, "nouveaux biens chez les concurrents"],
     ["baisse", by("baisse").length, "baisses de prix"],
     ["retire", by("retire").length, "biens retirés (vendus probables)"],
-    ["moins-cher", cheaper.length, "de vos biens affichés moins cher ailleurs", true],
+    ["moins-cher", cheaper.length, "de vos biens peut-être moins chers ailleurs", true],
   ];
   let h = `<h2>Ce qui a bougé</h2><p class="sub">Depuis le relevé du ${dfr(since)}. Les annonces sont relevées ${esc(D.frequence || "régulièrement")} sur les sites des agences.</p>
   <div class="tiles">${tiles.map(([id, n, l, al]) => `<a class="tile${al && n ? " alert" : ""}" href="#${id === "moins-cher" ? "semaine" : "semaine"}" onclick="document.getElementById('s-${id}')?.scrollIntoView({behavior:'smooth'});return false;"><b>${n}</b><span>${l}</span></a>`).join("")}</div>`;
   if (D.releves.length === 1) h += `<div class="note"><b>Premier relevé effectué le ${dfr(last)}.</b> Il sert de point de départ : les nouveautés, baisses de prix et biens retirés apparaîtront ici dès le prochain relevé, dans 2 jours.</div>`;
   const sect = (id, title, sub, list) => `<h2 id="s-${id}">${title}</h2><p class="sub">${sub}</p>` + (list.length ? `<div class="grid">${list.join("")}</div>` : `<div class="empty">Rien pour l'instant.</div>`);
-  h += sect("moins-cher", "Vos biens affichés moins cher ailleurs", "Même bien reconnu chez un concurrent (même surface et même terrain), à un prix inférieur au vôtre. À confirmer en ouvrant les deux annonces.",
-    cheaper.sort((a, b) => a[1].prix / a[0].prix - b[1].prix / b[0].prix).map(([n, c]) => card(c, {extra: `<div class="pills"><span class="pill bad">${Math.round((c.prix / n.prix - 1) * 100)} % vs votre prix (${fmt(n.prix)} €)</span></div><div class="ttl">Chez vous : <a href="${esc(safeUrl(n.url))}" target="_blank" rel="noopener noreferrer">${esc(n.titre)}</a></div>`})));
-  h += sect("nouveau", "Nouveaux biens chez les concurrents", "Annonces apparues depuis le dernier relevé.", by("nouveau").map(e => card(BYID[e.id], {ev: e, extra: (MATCH_REV[e.id] ? `<div class="pills"><span class="pill acc">Aussi chez vous</span></div>` : "")})));
+  h += sect("moins-cher", "Vos biens peut-être affichés moins cher ailleurs", "Annonce d'un concurrent dont la surface, le terrain et le nombre de chambres correspondent à l'un de vos biens, à un prix inférieur. C'est probablement le même bien, mais ce n'est pas certain : comparez les photos des deux annonces avant d'en tirer une conclusion.",
+    cheaper.sort((a, b) => a[1].prix / a[0].prix - b[1].prix / b[0].prix).map(([n, c]) => card(c, {extra: `<div class="pills"><span class="pill bad">${Math.round((c.prix / n.prix - 1) * 100)} % vs votre prix (${fmt(n.prix)} €)</span></div><div class="ttl">Votre annonce à comparer : <a href="${esc(safeUrl(n.url))}" target="_blank" rel="noopener noreferrer">${esc(n.titre)}</a></div>`})));
+  h += sect("nouveau", "Nouveaux biens chez les concurrents", "Annonces apparues depuis le dernier relevé.", by("nouveau").map(e => card(BYID[e.id], {ev: e, extra: (MATCH_REV[e.id] ? `<div class="pills"><span class="pill acc">Peut-être aussi chez vous</span></div>` : "")})));
   h += sect("baisse", "Baisses de prix", "Prix affiché en baisse par rapport au relevé précédent.", by("baisse").map(e => card(BYID[e.id], {ev: e})));
   h += sect("retire", "Biens retirés des sites", "Annonces disparues : bien vendu, sous compromis ou mandat retiré.", by("retire").map(e => card(BYID[e.id], {ev: e})));
   const hausses = by("hausse").concat(by("remis"));
@@ -191,9 +195,9 @@ function viewVos() {
   <div class="tiles"><div class="tile"><b>${NOUS.length}</b><span>biens en vente chez vous</span></div>
   <div class="tile"><b>${hi}</b><span>plus de 20 % au-dessus du marché</span></div>
   <div class="tile"><b>${lo}</b><span>plus de 20 % en dessous</span></div>
-  <div class="tile"><b>${sh}</b><span>aussi en vente chez un concurrent</span></div></div>
+  <div class="tile"><b>${sh}</b><span>peut-être aussi en vente chez un concurrent</span></div></div>
   <div class="filters"><label for="fv-tri">Trier par<select id="fv-tri"><option value="ecart">Écart avec le marché</option><option value="date">Date de mise en ligne</option><option value="prix">Prix</option></select></label>
-  <label for="fv-part">Afficher<select id="fv-part"><option value="">Tous vos biens</option><option value="ailleurs">Aussi chez un concurrent</option><option value="haut">Au-dessus du marché</option><option value="bas">En dessous du marché</option><option value="ancien">En ligne depuis plus d'un an</option></select></label></div>
+  <label for="fv-part">Afficher<select id="fv-part"><option value="">Tous vos biens</option><option value="ailleurs">Peut-être aussi chez un concurrent</option><option value="haut">Au-dessus du marché</option><option value="bas">En dessous du marché</option><option value="ancien">En ligne depuis plus d'un an</option></select></label></div>
   <p class="count" id="fv-count"></p><div class="grid" id="fv-grid"></div>`;
   setTimeout(() => {
     const draw = () => {
