@@ -79,6 +79,10 @@ tr.us td{background:var(--accent-soft);font-weight:600}
 .bar i{display:block;height:14px;border-radius:4px;background:var(--copper)}
 .bar em{font-style:normal;text-align:right;font-weight:600}
 details.cmp{font-size:13px}
+details.cmp p{margin:8px 0 2px}
+.also{font-size:13px;color:var(--ink-2)}
+.also a{font-weight:600}
+.also b.neg{color:var(--bad)}
 .spark{display:block}
 details.cmp summary{cursor:pointer;color:var(--accent);font-weight:600}
 details.cmp ul{margin:6px 0 0;padding-left:18px}
@@ -88,6 +92,18 @@ details.cmp ul{margin:6px 0 0;padding-left:18px}
 .mini span{position:absolute;left:4px;bottom:4px;background:rgba(28,31,33,.85);color:#fff;font-size:11px;font-weight:600;padding:1px 6px;border-radius:4px}
 .simrow{border-top:1px solid var(--line);padding:6px 0;display:flex;flex-direction:column;gap:4px}
 .empty{color:var(--ink-2);background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:18px}
+#lock{position:fixed;inset:0;background:var(--brand);display:flex;align-items:center;justify-content:center;padding:20px;z-index:10}
+#lock[hidden]{display:none}
+.lockbox{background:var(--panel);border-radius:12px;padding:26px 24px;width:100%;max-width:360px;display:flex;flex-direction:column;gap:10px}
+.lockbox img{height:46px;width:auto;align-self:flex-start;filter:invert(1)}
+.lockbox h2{margin:4px 0 0}
+.lockbox label{font-size:13px;font-weight:600;color:var(--ink-2)}
+.lockbox input[type=password]{font:16px var(--body);padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.lockbox .rem{display:flex;gap:8px;align-items:center;font-weight:400}
+.lockbox button{font:600 15px var(--body);padding:11px;border:0;border-radius:8px;background:var(--copper);color:#fff;cursor:pointer}
+.lockbox .err{color:var(--bad);font-size:13px;min-height:1em;margin:0}
+.stale{background:var(--bad-soft);color:var(--bad);border-radius:10px;padding:10px 14px;margin:0 0 14px;font-size:14px}
+.btn{font:600 13px var(--body);padding:8px 12px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);cursor:pointer}
 footer{color:var(--ink-2);font-size:12px;padding:20px 0 40px;border-top:1px solid var(--line)}
 @media (max-width:520px){
   h1{font-size:21px}
@@ -126,6 +142,18 @@ footer{color:var(--ink-2);font-size:12px;padding:20px 0 40px;border-top:1px soli
   </div>
 </header>
 <main class="wrap" id="app"><p class="sub">Chargement des données…</p></main>
+<div id="lock" hidden>
+  <form id="lock-f" class="lockbox" autocomplete="on">
+    <img src="https://www.agence-cap-ferret.fr/wp-content/uploads/2022/03/Fichier-3.svg" alt="" onerror="this.remove()">
+    <h2>Veille Cap Ferret</h2>
+    <p class="sub">Accès réservé à l'Agence Immobilière du Cap.</p>
+    <label for="lock-p">Mot de passe</label>
+    <input id="lock-p" name="password" type="password" autocomplete="current-password" required>
+    <label class="rem"><input id="lock-r" type="checkbox" checked> Rester connecté sur cet appareil</label>
+    <button type="submit">Ouvrir</button>
+    <p id="lock-e" class="err" role="alert"></p>
+  </form>
+</div>
 <footer class="wrap" id="foot"></footer>
 
 <script>
@@ -172,8 +200,9 @@ const SEUIL_PROBABLE = 85, SEUIL_POSSIBLE = 60;
 function photo(u, label) { return `<div class="mini">${u ? `<img src="${esc(safeUrl(u))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}<span>${esc(label)}</span></div>`; }
 function duo(n, c, m) {
   const lvl = m.ver ? `<span class="pill good">Même bien, vérifié sur photos</span>` : m.s >= SEUIL_PROBABLE ? `<span class="pill acc">Probablement le même bien</span>` : `<span class="pill">Ressemblance à vérifier</span>`;
-  return `<div class="duo">${photo(n.image, "Vous")}${photo(c.image, c.agence)}</div><div class="pills">${lvl}</div>${m.why.length ? `<div class="facts"><span>${esc(m.why.join(" · "))}</span></div>` : ""}`;
+  return `<div class="duo">${photo(n.image, "Vous")}${photo(c.image, c.agence)}</div><div class="pills">${lvl}</div>`;
 }
+const ligne1 = x => !!(x.f && x.f.includes("P"));
 function comparables(b) {
   let pool = CONC.filter(c => cat(c.type) === cat(b.type) && pm2(c) && b.surface && c.surface >= b.surface * 0.7 && c.surface <= b.surface * 1.3);
   let zone = "toute la presqu'île";
@@ -241,13 +270,23 @@ function card(b, opts = {}) {
     </a>
     <div class="cb">
       <div class="price">${eur(b.prix)}${old}${delta}</div>
-      <div class="facts">${f.map(x => `<span>${esc(x)}</span>`).join("")}${m2 ? `<span>${fmt(m2)} €/m²</span>` : ""}</div>
+      <div class="facts">${f.map(x => `<span>${esc(x)}</span>`).join("")}</div>
       <div class="ttl">${esc(b.titre)}</div>
-      ${!b.nous && b.statut === "actif" ? `<div class="facts"><span>En ligne depuis ${duree(days(enLigne(b)))}${b.date_annonce && b.date_annonce < b.first_seen ? "" : " (au moins)"}</span>${b.statut_annonce ? `<span class="pill warn">${esc(b.statut_annonce)}</span>` : ""}</div>` : ""}
+      ${!b.nous && b.statut_annonce ? `<div class="pills"><span class="pill warn">${esc(b.statut_annonce)}</span></div>` : ""}
       ${spark(b.hist || [])}
       ${opts.extra || ""}
       <a class="cta" href="${esc(safeUrl(b.url))}" target="_blank" rel="noopener noreferrer">Voir l'annonce →</a>
     </div></article>`;
+}
+
+
+function relevesEnRetard() {
+  const E = D.etat_releves || {}, last = D.maj;
+  return D.agences.map(a => [a.nom, E[a.nom] || {}]).filter(([n, e]) => e.echec && (!e.ok || e.ok < last)).map(([n, e]) => ({n, ok: e.ok, echec: e.echec}));
+}
+function bandeauReleves() {
+  const L = relevesEnRetard(); if (!L.length) return "";
+  return `<div class="stale" role="status"><b>Relevé incomplet :</b> ${L.map(x => `${esc(x.n === "Agence du Cap" ? "votre site" : x.n)} (dernier relevé réussi ${x.ok ? "le " + dfr(x.ok) : "jamais"})`).join(", ")}. Leurs biens sont affichés tels qu'au dernier relevé réussi ; aucun n'est marqué retiré à tort.</div>`;
 }
 
 function viewSemaine() {
@@ -263,10 +302,10 @@ function viewSemaine() {
     ["retire", by("retire").length, "biens retirés (vendus probables)"],
     ["moins-cher", cheaper.length, "de vos biens peut-être moins chers ailleurs", true],
   ];
-  let h = `<h2>Ce qui a bougé</h2><p class="sub">Depuis le relevé du ${dfr(since)}. Les annonces sont relevées ${esc(D.frequence || "régulièrement")} sur les sites des agences.</p>
+  let h = bandeauReleves() + `<h2>Ce qui a bougé</h2><p class="sub">Depuis le relevé du ${dfr(since)}. Les annonces sont relevées ${esc(D.frequence || "régulièrement")} sur les sites des agences.</p>
   <div class="tiles">${tiles.map(([id, n, l, al]) => `<a class="tile${al && n ? " alert" : ""}" href="#${id === "moins-cher" ? "semaine" : "semaine"}" onclick="document.getElementById('s-${id}')?.scrollIntoView({behavior:'smooth'});return false;"><b>${n}</b><span>${l}</span></a>`).join("")}</div>`;
   if (D.releves.length === 1) h += `<div class="note"><b>Premier relevé effectué le ${dfr(last)}.</b> Il sert de point de départ : les nouveautés, baisses de prix et biens retirés apparaîtront ici dès le prochain relevé, dans 2 jours.</div>`;
-  const sect = (id, title, sub, list) => `<h2 id="s-${id}">${title}</h2><p class="sub">${sub}</p>` + (list.length ? `<div class="grid">${list.join("")}</div>` : `<div class="empty">Rien pour l'instant.</div>`);
+  const sect = (id, title, sub, list) => list.length ? `<h2 id="s-${id}">${title}</h2><p class="sub">${sub}</p><div class="grid">${list.join("")}</div>` : "";
   h += sect("moins-cher", "Vos biens peut-être affichés moins cher ailleurs", "Annonce d'un concurrent qui ressemble fortement à l'un de vos biens (surface, terrain, chambres, secteur, prix, avec une marge d'erreur), affichée moins cher. Comparez les deux photos : si ce n'est pas le même bien, ignorez la fiche.",
     cheaper.sort((a, b) => a[1].prix / a[0].prix - b[1].prix / b[0].prix).map(([n, c, m]) => card(c, {extra: `${duo(n, c, m)}<div class="pills"><span class="pill bad">${Math.round((c.prix / n.prix - 1) * 100)} % vs votre prix (${fmt(n.prix)} €)</span></div><div class="ttl">Votre annonce : <a href="${esc(safeUrl(n.url))}" target="_blank" rel="noopener noreferrer">${esc(n.titre)}</a></div>`})));
   h += sect("nouveau", "Nouveaux biens chez les concurrents", "Annonces apparues depuis le dernier relevé.", by("nouveau").map(e => card(BYID[e.id], {ev: e, extra: (MATCH_REV[e.id] ? `<div class="pills"><span class="pill acc">Peut-être aussi chez vous</span></div>` : "")})));
@@ -280,35 +319,37 @@ function viewSemaine() {
 function viewVos() {
   const rows = NOUS.map(n => ({n, c: comparables(n), m: MATCH[n.id] || [], p: POSS[n.id] || []}));
   const pos = r => { const v = pm2(r.n); return v && r.c.med && r.c.pool.length >= 4 ? v / r.c.med - 1 : null; };
-  const hi = rows.filter(r => pos(r) > 0.2).length, lo = rows.filter(r => pos(r) < -0.2 && pos(r) !== null).length, sh = rows.filter(r => r.m.length).length, sh2 = rows.filter(r => r.p.length).length;
+  const hi = rows.filter(r => pos(r) > 0.2).length, lo = rows.filter(r => pos(r) < -0.2 && pos(r) !== null).length, sh = rows.filter(r => (VERIF[r.n.id] || []).length).length;
   let h = `<h2>Vos biens face au marché</h2><p class="sub">Chaque bien est comparé aux annonces des concurrents de même catégorie et de surface proche (±30 %), dans le même secteur quand il y en a assez. Le €/m² ne tient compte ni du terrain ni de la vue : c'est un repère, pas une estimation.</p>
   <div class="tiles"><div class="tile"><b>${NOUS.length}</b><span>biens en vente chez vous</span></div>
   <div class="tile"><b>${hi}</b><span>plus de 20 % au-dessus du marché</span></div>
   <div class="tile"><b>${lo}</b><span>plus de 20 % en dessous</span></div>
-  <div class="tile"><b>${sh}</b><span>probablement aussi chez un concurrent (${sh2} avec une annonce ressemblante)</span></div></div>
+  <div class="tile"><b>${sh}</b><span>aussi en vente chez un concurrent (vérifié sur photos)</span></div></div>
   <div class="filters"><label for="fv-tri">Trier par<select id="fv-tri"><option value="ecart">Écart avec le marché</option><option value="date">Date de mise en ligne</option><option value="prix">Prix</option></select></label>
-  <label for="fv-part">Afficher<select id="fv-part"><option value="">Tous vos biens</option><option value="ailleurs">Avec une annonce ressemblante ailleurs</option><option value="haut">Au-dessus du marché</option><option value="bas">En dessous du marché</option><option value="ancien">En ligne depuis plus d'un an</option></select></label></div>
+  <label for="fv-part">Afficher<select id="fv-part"><option value="">Tous vos biens</option><option value="ailleurs">Aussi chez un concurrent</option><option value="haut">Au-dessus du marché</option><option value="bas">En dessous du marché</option><option value="ancien">En ligne depuis plus d'un an</option></select></label></div>
   <p class="count" id="fv-count"></p><div class="grid" id="fv-grid"></div>`;
   setTimeout(() => {
     const draw = () => {
       const tri = document.getElementById("fv-tri").value, part = document.getElementById("fv-part").value;
       const yearAgo = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10);
-      let L = rows.filter(r => !part || (part === "ailleurs" && r.p.length) || (part === "haut" && pos(r) > 0.2) || (part === "bas" && pos(r) !== null && pos(r) < -0.2) || (part === "ancien" && r.n.first_seen < yearAgo));
+      let L = rows.filter(r => !part || (part === "ailleurs" && (VERIF[r.n.id] || []).length) || (part === "haut" && pos(r) > 0.2) || (part === "bas" && pos(r) !== null && pos(r) < -0.2) || (part === "ancien" && r.n.first_seen < yearAgo));
       L.sort((a, b) => tri === "date" ? (b.n.first_seen > a.n.first_seen ? 1 : -1) : tri === "prix" ? (b.n.prix || 0) - (a.n.prix || 0) : Math.abs(pos(b) ?? 0) - Math.abs(pos(a) ?? 0));
       document.getElementById("fv-count").textContent = L.length + " bien" + (L.length > 1 ? "s" : "");
       document.getElementById("fv-grid").innerHTML = L.map(r => {
         const p = pos(r), pills = [];
         if (p !== null) pills.push(`<span class="pill ${p > 0.2 ? "bad" : p < -0.2 ? "good" : ""}">${p > 0 ? "+" : ""}${Math.round(p * 100)} % vs marché</span>`);
-        else if (!r.n.prix) pills.push(`<span class="pill">Prix sur demande</span>`);
-        if (r.n.first_seen < yearAgo) pills.push(`<span class="pill warn">En ligne depuis le ${dfr(r.n.first_seen)}</span>`);
-        (VERIF[r.n.id] || []).forEach(c => pills.push(`<a class="pill good" href="${esc(safeUrl(c.url))}" target="_blank" rel="noopener noreferrer">Aussi chez ${esc(c.agence)}${c.prix ? ` (${fmt(c.prix)} €)` : ""}</a>`));
-        const P = (POSS[r.n.id] || []).slice(0, 4);
-        const sim = P.length ? `<details class="cmp"${P.some(([c, m]) => m.ver || m.s >= SEUIL_PROBABLE) ? " open" : ""}><summary>Annonces ressemblantes chez les concurrents (${P.length})</summary>${P.map(([c, m]) => `<div class="simrow">${duo(r.n, c, m)}<div class="facts"><a href="${esc(safeUrl(c.url))}" target="_blank" rel="noopener noreferrer">${esc(c.agence)}</a><span>${eur(c.prix)}</span><span>${c.surface ? fmt(c.surface) + " m²" : ""}</span><span>${c.terrain ? "terrain " + fmt(c.terrain) + " m²" : ""}</span><span>${c.chambres ? c.chambres + " ch." : ""}</span></div></div>`).join("")}</details>` : "";
-        const ex = r.c.pool.slice().sort((a, b) => Math.abs(a.surface - r.n.surface) - Math.abs(b.surface - r.n.surface)).slice(0, 5);
-        const cmp = r.c.med ? `<div class="facts"><span>Marché (${esc(r.c.zone)}, ${r.c.pool.length} biens) : ${fmt(r.c.med)} €/m²${r.c.pool.length >= 4 ? `, de ${fmt(r.c.p25)} à ${fmt(r.c.p75)}` : ""}</span></div>
-          <details class="cmp"><summary>Voir les biens comparables</summary><ul>${ex.map(c => `<li><a href="${esc(safeUrl(c.url))}" target="_blank" rel="noopener noreferrer">${esc(c.agence)}</a> · ${fmt(c.surface)} m² · ${eur(c.prix)} · ${fmt(pm2(c))} €/m²${c.secteur ? " · " + esc(c.secteur) : ""}</li>`).join("")}</ul></details>` : "";
-        const vc = ventesComparables(r.n); const vcl = vc ? `<div class="facts"><span>Vendu réellement (${esc(vc.zone)}, ${vc.n} ventes, 3 ans) : ${fmt(vc.med)} €/m²${pm2(r.n) ? ` · votre prix ${pm2(r.n) > vc.med ? "+" : ""}${Math.round((pm2(r.n) / vc.med - 1) * 100)} %` : ""}</span></div>` : "";
-        return card(r.n, {extra: `<div class="pills">${pills.join("")}</div>${sim}${cmp}${vcl}`});
+        if (r.n.first_seen < yearAgo) pills.push(`<span class="pill warn">En ligne depuis ${duree(days(r.n.first_seen))}</span>`);
+        const V = VERIF[r.n.id] || [];
+        const ailleurs = V.length ? `<div class="also">Aussi chez ${V.map(c => `<a href="${esc(safeUrl(c.url))}" target="_blank" rel="noopener noreferrer">${esc(c.agence)}</a>${c.prix && r.n.prix && Math.abs(c.prix / r.n.prix - 1) >= .01 ? ` <b class="${c.prix < r.n.prix ? "neg" : ""}">${fmt(c.prix)} €</b>` : ""}`).join(", ")}</div>` : "";
+        const P = (POSS[r.n.id] || []).filter(([c, m]) => !m.ver).slice(0, 3);
+        const ex = r.c.pool.slice().sort((a, b) => Math.abs(a.surface - r.n.surface) - Math.abs(b.surface - r.n.surface)).slice(0, 4);
+        const vc = ventesComparables(r.n);
+        const det = [
+          r.c.med ? `<p><b>Annonces comparables</b> (${esc(r.c.zone)}, ${r.c.pool.length}) : ${fmt(r.c.med)} €/m²</p><ul>${ex.map(c => `<li><a href="${esc(safeUrl(c.url))}" target="_blank" rel="noopener noreferrer">${esc(c.agence)}</a> · ${fmt(c.surface)} m² · ${eur(c.prix)}</li>`).join("")}</ul>` : "",
+          vc ? `<p><b>Ventes réelles</b> (${esc(vc.zone)}, ${vc.n} sur 3 ans) : ${fmt(vc.med)} €/m²</p>` : "",
+          P.length ? `<p><b>À vérifier : annonces qui ressemblent</b></p>${P.map(([c, m]) => `<div class="simrow">${duo(r.n, c, m)}<div class="facts"><a href="${esc(safeUrl(c.url))}" target="_blank" rel="noopener noreferrer">${esc(c.agence)}</a><span>${eur(c.prix)}</span></div></div>`).join("")}` : ""
+        ].join("");
+        return card(r.n, {extra: `${pills.length ? `<div class="pills">${pills.join("")}</div>` : ""}${ailleurs}${det ? `<details class="cmp"><summary>Détails</summary>${det}</details>` : ""}`});
       }).join("") || `<div class="empty">Aucun bien ne correspond.</div>`;
     };
     ["fv-tri", "fv-part"].forEach(id => document.getElementById(id).addEventListener("change", draw)); draw();
@@ -329,9 +370,9 @@ function viewConc() {
   ACT.filter(b => cat(b.type) === "M" && pm2(b) && b.secteur).forEach(b => (sects[b.secteur] = sects[b.secteur] || []).push(pm2(b)));
   const S = Object.entries(sects).filter(([, v]) => v.length >= 5).map(([s, v]) => [s, median(v), v.length]).sort((a, b) => b[1] - a[1]);
   const max = Math.max(...S.map(s => s[1]));
-  return `<h2>Les agences</h2><p class="sub">Biens à vendre sur la presqu'île, relevés sur le site propre de chaque agence. Les prix sur demande sont exclus des médianes.</p>
-  <div class="tablewrap"><table><thead><tr><th>Agence</th><th class="n">Biens</th><th class="n">Maisons</th><th class="n">Apparts</th><th class="n">Prix sur demande</th><th class="n">Prix médian</th><th class="n">€/m² maisons</th><th class="n">Surface maisons</th><th class="n">Retirés depuis le début</th><th>Site</th></tr></thead><tbody>
-  ${st.map(s => `<tr class="${s.a === "Agence du Cap" ? "us" : ""}"><td>${esc(s.a === "Agence du Cap" ? "Vous (Agence du Cap)" : s.a)}${s.note ? `<div class="meta">${esc(s.note)}</div>` : ""}</td><td class="n">${s.n}</td><td class="n">${s.m}</td><td class="n">${s.ap}</td><td class="n">${Math.round(s.cache * 100)} %</td><td class="n">${s.prix ? fmt(s.prix) + " €" : "–"}</td><td class="n">${s.m2 ? fmt(s.m2) + " €" : "–"}</td><td class="n">${s.surf ? fmt(s.surf) + " m²" : "–"}</td><td class="n">${s.ret}</td><td><a href="${esc(safeUrl(s.site))}" target="_blank" rel="noopener noreferrer">Ouvrir</a></td></tr>`).join("")}
+  return bandeauReleves() + `<h2>Les agences</h2><p class="sub">Biens à vendre sur la presqu'île, relevés sur le site propre de chaque agence. Les prix sur demande sont exclus des médianes.</p>
+  <div class="tablewrap"><table><thead><tr><th>Agence</th><th class="n">Biens</th><th class="n">Maisons</th><th class="n">Apparts</th><th class="n">Prix sur demande</th><th class="n">Prix médian</th><th class="n">€/m² maisons</th><th class="n">Surface maisons</th><th class="n">Retirés depuis le début</th><th>Dernier relevé</th><th>Site</th></tr></thead><tbody>
+  ${st.map(s => `<tr class="${s.a === "Agence du Cap" ? "us" : ""}"><td>${esc(s.a === "Agence du Cap" ? "Vous (Agence du Cap)" : s.a)}${s.note ? `<div class="meta">${esc(s.note)}</div>` : ""}</td><td class="n">${s.n}</td><td class="n">${s.m}</td><td class="n">${s.ap}</td><td class="n">${Math.round(s.cache * 100)} %</td><td class="n">${s.prix ? fmt(s.prix) + " €" : "–"}</td><td class="n">${s.m2 ? fmt(s.m2) + " €" : "–"}</td><td class="n">${s.surf ? fmt(s.surf) + " m²" : "–"}</td><td class="n">${s.ret}</td><td>${(() => { const e = (D.etat_releves || {})[s.a] || {}; return e.echec && (!e.ok || e.ok < D.maj) ? `<span class="pill bad">Échec le ${dfr(e.echec)}</span>` : e.ok ? `<span class="pill good">${dfr(e.ok)}</span>` : "–"; })()}</td><td><a href="${esc(safeUrl(s.site))}" target="_blank" rel="noopener noreferrer">Ouvrir</a></td></tr>`).join("")}
   </tbody></table></div>
   <h2>Biens qui traînent chez les concurrents</h2><p class="sub">Annonces en ligne depuis le plus longtemps, d'après la date affichée sur l'annonce quand elle existe, sinon depuis le premier relevé. Ce sont souvent des vendeurs prêts à écouter une autre agence.</p>
   ${(() => { const L = CONC.filter(b => b.statut === "actif").map(b => [b, days(enLigne(b))]).filter(x => x[1] >= 120).sort((a, b) => b[1] - a[1]).slice(0, 12);
@@ -344,11 +385,12 @@ function viewConc() {
 function viewTous() {
   const ags = D.agences.map(a => a.nom), secs = [...new Set(ACT.map(b => b.secteur).filter(Boolean))].sort();
   setTimeout(() => {
-    const ids = ["ft-ag", "ft-type", "ft-sec", "ft-max", "ft-txt", "ft-tri", "ft-stat"];
+    const ids = ["ft-ag", "ft-type", "ft-sec", "ft-max", "ft-txt", "ft-tri", "ft-stat", "ft-surf"];
     const draw = () => {
-      const [ag, ty, se, mx, tx, tri, stt] = ids.map(i => document.getElementById(i).value);
+      const [ag, ty, se, mx, tx, tri, stt, sf] = ids.map(i => document.getElementById(i).value); const [s0, s1] = sf ? sf.split("-").map(Number) : [0, 1e9];
       const t = tx.trim().toLowerCase();
-      let L = D.biens.filter(b => (stt === "retire" ? b.statut === "retiré" : b.statut === "actif") && (!ag || b.agence === ag) && (!ty || cat(b.type) === ty) && (!se || b.secteur === se) && (!mx || (b.prix && b.prix <= +mx)) && (!t || (b.titre + " " + (b.secteur || "")).toLowerCase().includes(t)));
+      let L = D.biens.filter(b => (stt === "retire" ? b.statut === "retiré" : b.statut === "actif") && (!ag || b.agence === ag) && (!ty || cat(b.type) === ty) && (!se || b.secteur === se) && (!mx || (b.prix && b.prix <= +mx)) && (!t || (b.titre + " " + (b.secteur || "") + " " + (b.quartier || "")).toLowerCase().includes(t)) && (!sf || (b.surface && b.surface >= s0 && b.surface < s1)));
+      window._liste = L;
       const k = {prix_asc: b => b.prix ?? 1e12, prix_desc: b => -(b.prix ?? 0), m2: b => pm2(b) ?? 1e12, surface: b => -(b.surface ?? 0), recent: b => -Date.parse(b.first_seen)}[tri];
       L.sort((a, b) => k(a) - k(b));
       document.getElementById("ft-count").textContent = L.length + " bien" + (L.length > 1 ? "s" : "") + (L.length > 120 ? " (120 premiers affichés, affinez les filtres)" : "");
@@ -362,10 +404,11 @@ function viewTous() {
     <label for="ft-type">Type<select id="ft-type"><option value="">Tous</option><option value="M">Maisons</option><option value="A">Appartements</option><option value="T">Terrains</option></select></label>
     <label for="ft-sec">Secteur<select id="ft-sec"><option value="">Tous</option>${secs.map(s => `<option>${esc(s)}</option>`).join("")}</select></label>
     <label for="ft-max">Prix maximum<select id="ft-max"><option value="">Sans limite</option>${[1e6, 1.5e6, 2e6, 3e6, 5e6].map(v => `<option value="${v}">${fmt(v)} €</option>`).join("")}</select></label>
+    <label for="ft-surf">Surface<select id="ft-surf"><option value="">Toutes</option><option value="0-80">Moins de 80 m²</option><option value="80-130">80 à 130 m²</option><option value="130-200">130 à 200 m²</option><option value="200-9999">Plus de 200 m²</option></select></label>
     <label for="ft-txt">Recherche<input id="ft-txt" type="search" placeholder="Mimbeau, première ligne…"></label>
     <label for="ft-tri">Trier par<select id="ft-tri"><option value="recent">Plus récents</option><option value="prix_asc">Prix croissant</option><option value="prix_desc">Prix décroissant</option><option value="m2">€/m² croissant</option><option value="surface">Surface</option></select></label>
     <label for="ft-stat">Statut<select id="ft-stat"><option value="actif">En vente</option><option value="retire">Retirés / vendus</option></select></label>
-  </div><p class="count" id="ft-count"></p><div class="grid" id="ft-grid"></div>`;
+  </div><p class="count"><span id="ft-count"></span></p><div class="grid" id="ft-grid"></div>`;
 }
 
 
@@ -417,7 +460,14 @@ function route() {
   document.getElementById("app").innerHTML = f();
 }
 
-fetch("data.json?v=" + Date.now()).then(r => r.json()).then(d => {
+const b64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
+async function dechiffrer(enc, mdp) {
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(mdp), "PBKDF2", false, ["deriveKey"]);
+  const cle = await crypto.subtle.deriveKey({name: "PBKDF2", salt: b64(enc.sel), iterations: enc.iter, hash: "SHA-256"}, base, {name: "AES-GCM", length: 256}, false, ["decrypt"]);
+  const clair = await crypto.subtle.decrypt({name: "AES-GCM", iv: b64(enc.iv)}, cle, b64(enc.ct));
+  return JSON.parse(new TextDecoder().decode(clair));
+}
+function demarrer(d) {
   D = d; ACT = d.biens.filter(b => b.statut === "actif");
   NOUS = ACT.filter(b => b.nous); CONC = ACT.filter(b => !b.nous);
   BYID = Object.fromEntries(d.biens.map(b => [b.id, b]));
@@ -437,9 +487,28 @@ fetch("data.json?v=" + Date.now()).then(r => r.json()).then(d => {
     MATCH[n.id].forEach(c => MATCH_REV[c.id] = n.id);
   });
   document.getElementById("meta").textContent = `Relevé du ${dfr(d.maj)} · ${d.agences.length - 1} concurrents · ${CONC.length} biens suivis · ${NOUS.length} chez vous`;
-  document.getElementById("foot").textContent = "Données relevées sur les sites des agences, pour un usage interne de veille. « Retiré » signifie que l'annonce a disparu du site : vente, compromis ou fin de mandat. Rapprochements « même bien » et €/m² indicatifs.";
+  document.getElementById("foot").innerHTML = `Données relevées sur les sites des agences, pour un usage interne de veille. « Retiré » signifie que l'annonce a disparu du site : vente, compromis ou fin de mandat. Rapprochements « même bien » et €/m² indicatifs. <button class="btn" id="logout" type="button">Se déconnecter de cet appareil</button>`;
+  document.getElementById("logout").onclick = () => { try { localStorage.removeItem("veille_mdp"); } catch (e) {} location.reload(); };
   route(); addEventListener("hashchange", route);
-}).catch(() => { document.getElementById("app").innerHTML = '<div class="empty">Les données n\'ont pas pu être chargées. Rechargez la page dans un instant.</div>'; });
+}
+(async () => {
+  let enc;
+  try { enc = await (await fetch("data.enc.json?v=" + Date.now())).json(); }
+  catch (e) { document.getElementById("app").innerHTML = '<div class="empty">Les données n\'ont pas pu être chargées. Rechargez la page dans un instant.</div>'; return; }
+  let mdp = null; try { mdp = localStorage.getItem("veille_mdp"); } catch (e) {}
+  if (mdp) { try { return demarrer(await dechiffrer(enc, mdp)); } catch (e) { try { localStorage.removeItem("veille_mdp"); } catch (e2) {} } }
+  const lock = document.getElementById("lock"); lock.hidden = false; document.getElementById("lock-p").focus();
+  document.getElementById("lock-f").addEventListener("submit", async ev => {
+    ev.preventDefault();
+    const p = document.getElementById("lock-p").value, err = document.getElementById("lock-e");
+    err.textContent = "Vérification…";
+    try {
+      const d = await dechiffrer(enc, p);
+      if (document.getElementById("lock-r").checked) { try { localStorage.setItem("veille_mdp", p); } catch (e) {} }
+      lock.hidden = true; err.textContent = ""; demarrer(d);
+    } catch (e) { err.textContent = "Mot de passe incorrect."; }
+  });
+})();
 </script>
 </body>
 </html>

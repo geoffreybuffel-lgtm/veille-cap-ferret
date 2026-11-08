@@ -1,9 +1,12 @@
 # Relevé de veille (tous les 2 jours)
 
-Le site est publié par GitHub Pages depuis la branche `main` : `index.html` lit `data.json`.
+Le site est publié par GitHub Pages depuis la branche `main` : `index.html` lit `data.enc.json` (données chiffrées) et les déchiffre avec le mot de passe saisi.
+Le mot de passe est fourni dans la consigne de la tâche programmée (variable VEILLE_MDP). `data.json` (en clair) ne doit JAMAIS être commité.
 Chaque relevé met `data.json` à jour avec `tools/update.py`, puis pousse sur `main`.
 
 ## Étapes
+
+0. `export VEILLE_MDP='…'` puis `python3 tools/coffre.py ouvrir` (crée data.json en clair).
 
 1. Relever les biens à VENDRE sur la presqu'île du Cap Ferret, sur le site propre de chaque agence uniquement (jamais les portails).
    Écrire un CSV par agence dans `releve/` avec l'en-tête exact :
@@ -32,7 +35,7 @@ Chaque relevé met `data.json` à jour avec `tools/update.py`, puis pousse sur `
 2. `python3 tools/update.py releve/ AAAA-MM-JJ` (date du jour, heure de Paris).
 3. Vérifier la sortie : si une agence a plus de 30 % de ses biens « retirés » d'un coup, le relevé de cette agence est sans doute incomplet :
    annuler (`git checkout data.json`), refaire le relevé de cette agence, relancer.
-4. `git add data.json && git commit -m "Relevé du AAAA-MM-JJ" && git push origin main`. Ne pas commiter `releve/`.
+4. `python3 tools/coffre.py fermer`, puis `git add data.enc.json && git commit -m "Relevé du AAAA-MM-JJ" && git push origin main`. Ne commiter ni `releve/` ni `data.json`.
 
 ## Rapprochements vérifiés
 `data.json > verifications` contient les paires (votre bien, annonce concurrente) vérifiées sur photos : `meme` vrai ou faux.

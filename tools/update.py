@@ -79,6 +79,17 @@ def main(folder, date, path="data.json"):
             if (r.get("secteur") or "").strip() and not b.get("secteur"):
                 b["secteur"] = r["secteur"].strip()
             b["last_seen"] = date
+    etat = data.setdefault("etat_releves", {})
+    compte = {}
+    for b in data["biens"]:
+        if b["id"] in seen:
+            compte[b["agence"]] = compte.get(b["agence"], 0) + 1
+    for a in data["agences"]:
+        nom = a["nom"]; e = etat.setdefault(nom, {})
+        if nom in agences_ok:
+            e.update({"ok": date, "n": compte.get(nom, 0)}); e.pop("echec", None)
+        else:
+            e["echec"] = date
     for b in data["biens"]:
         if b["statut"] == "actif" and b["id"] not in seen and b["agence"] in agences_ok:
             b["statut"] = "retiré"; b["retire_le"] = date
