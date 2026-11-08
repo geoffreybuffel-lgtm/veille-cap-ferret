@@ -50,8 +50,8 @@ h2:first-child{margin-top:0}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
 .card.nous{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
-.ph{position:relative;aspect-ratio:3/2;background:linear-gradient(135deg,var(--accent-soft),var(--line));display:block}
-.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph{position:relative;aspect-ratio:3/2;overflow:hidden;flex:none;background:linear-gradient(135deg,var(--accent-soft),var(--line));display:block}
+.ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 .ph .noimg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--ink-2);font-size:13px;text-align:center;padding:10px}
 .ph .ag{position:absolute;left:8px;top:8px;background:rgba(19,35,58,.82);color:#fff;font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px}
 .ph .ev{position:absolute;right:8px;top:8px;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px}
