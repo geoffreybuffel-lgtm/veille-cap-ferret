@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Veille Cap Ferret</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Bassin : encre marine, accent chenal, sable discret pour les fonds */
+  --ink:#13233a; --ink-2:#4a5a70; --line:#dfe4ea; --bg:#f5f7f9; --panel:#ffffff;
+  --accent:#0d6f7a; --accent-soft:#e3f1f2;
+  --good:#1f7a4a; --good-soft:#e2f3e9; --warn:#a35a00; --warn-soft:#fbefdc; --bad:#b42f2f; --bad-soft:#f9e3e3;
+  --display:"Newsreader", Georgia, serif; --body:"Public Sans", system-ui, -apple-system, Segoe UI, sans-serif;
+  /* Mise en page : bandeau, onglets, puis grilles de fiches avec photo */
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --ink:#e6ecf2; --ink-2:#9fb0c2; --line:#2a3646; --bg:#0f1722; --panel:#162131;
+  --accent:#4fb8c2; --accent-soft:#16343a; --good:#5cc78c; --good-soft:#163024; --warn:#e2a14a; --warn-soft:#3a2a12; --bad:#f07a7a; --bad-soft:#3a1a1a; color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --ink:#e6ecf2; --ink-2:#9fb0c2; --line:#2a3646; --bg:#0f1722; --panel:#162131;
+  --accent:#4fb8c2; --accent-soft:#16343a; --good:#5cc78c; --good-soft:#163024; --warn:#e2a14a; --warn-soft:#3a2a12; --bad:#f07a7a; --bad-soft:#3a1a1a; color-scheme:dark; }
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);font-variant-numeric:tabular-nums}
+a{color:var(--accent)}
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px}
+header.top{background:var(--panel);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:flex-end;justify-content:space-between;padding-top:20px;padding-bottom:14px}
+h1{font:600 30px/1.1 var(--display);margin:0;letter-spacing:-.01em}
+.meta{color:var(--ink-2);font-size:13px}
+nav.tabs{display:flex;gap:4px;flex-wrap:wrap;padding-top:6px}
+nav.tabs a{padding:9px 14px;border-radius:8px 8px 0 0;text-decoration:none;color:var(--ink-2);font-weight:600;font-size:14px;border:1px solid transparent;border-bottom:none}
+nav.tabs a[aria-current="page"]{color:var(--ink);background:var(--bg);border-color:var(--line)}
+nav.tabs a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main{padding:22px 0 60px}
+h2{font:600 22px/1.2 var(--display);margin:28px 0 4px;text-wrap:balance}
+h2:first-child{margin-top:0}
+.sub{color:var(--ink-2);margin:0 0 14px;max-width:70ch}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:2px;text-decoration:none;color:inherit}
+.tile b{font:600 32px/1.1 var(--display)}
+.tile span{color:var(--ink-2);font-size:13px}
+.tile.alert{border-left:4px solid var(--warn)}
+.note{background:var(--accent-soft);border-radius:10px;padding:12px 16px;margin:14px 0;max-width:80ch}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
+.card.nous{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.ph{position:relative;aspect-ratio:3/2;background:linear-gradient(135deg,var(--accent-soft),var(--line));display:block}
+.ph img{width:100%;height:100%;object-fit:cover;display:block}
+.ph .noimg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--ink-2);font-size:13px;text-align:center;padding:10px}
+.ph .ag{position:absolute;left:8px;top:8px;background:rgba(19,35,58,.82);color:#fff;font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px}
+.ph .ev{position:absolute;right:8px;top:8px;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px}
+.ev.nouveau{background:var(--accent);color:#fff}.ev.baisse{background:var(--good);color:#fff}.ev.hausse{background:var(--warn);color:#fff}.ev.retire{background:var(--bad);color:#fff}.ev.remis{background:var(--ink-2);color:#fff}
+.cb{padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px;flex:1}
+.price{font:600 20px/1.15 var(--display)}
+.price s{color:var(--ink-2);font:400 14px var(--body);margin-left:6px}
+.facts{display:flex;flex-wrap:wrap;gap:4px 12px;color:var(--ink-2);font-size:13px}
+.ttl{font-size:14px;line-height:1.35;overflow-wrap:anywhere}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.pill{font-size:12px;font-weight:600;padding:3px 8px;border-radius:999px;background:var(--line);color:var(--ink)}
+.pill.good{background:var(--good-soft);color:var(--good)}.pill.warn{background:var(--warn-soft);color:var(--warn)}.pill.bad{background:var(--bad-soft);color:var(--bad)}.pill.acc{background:var(--accent-soft);color:var(--accent)}
+.cta{margin-top:auto;padding-top:6px;font-size:13px;font-weight:600}
+.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:end;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+.filters label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--ink-2);font-weight:600}
+.filters select,.filters input{font:14px var(--body);padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);min-width:140px}
+.count{color:var(--ink-2);font-size:13px;margin:0 0 10px}
+.tablewrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:12px;color:var(--ink-2);text-transform:uppercase;letter-spacing:.03em}
+td.n,th.n{text-align:right}
+tr.us td{background:var(--accent-soft);font-weight:600}
+.bars{display:flex;flex-direction:column;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.bar{display:grid;grid-template-columns:120px 1fr 90px;gap:10px;align-items:center;font-size:14px}
+.bar i{display:block;height:14px;border-radius:4px;background:var(--accent)}
+.bar em{font-style:normal;text-align:right;font-weight:600}
+details.cmp{font-size:13px}
+details.cmp summary{cursor:pointer;color:var(--accent);font-weight:600}
+details.cmp ul{margin:6px 0 0;padding-left:18px}
+.empty{color:var(--ink-2);background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:18px}
+footer{color:var(--ink-2);font-size:12px;padding:20px 0 40px;border-top:1px solid var(--line)}
+@media (max-width:520px){h1{font-size:24px}.bar{grid-template-columns:90px 1fr 70px}}
+@media (prefers-reduced-motion:no-preference){.card{transition:transform .15s}.card:hover{transform:translateY(-2px)}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div>
+      <h1>Veille Cap Ferret</h1>
+      <div class="meta" id="meta">Chargement…</div>
+    </div>
+    <nav class="tabs" aria-label="Sections">
+      <a href="#semaine">Nouveautés</a>
+      <a href="#vos-biens">Vos biens</a>
+      <a href="#concurrents">Concurrents</a>
+      <a href="#tous">Tous les biens</a>
+    </nav>
+  </div>
+</header>
+<main class="wrap" id="app"><p class="sub">Chargement des données…</p></main>
+<footer class="wrap" id="foot"></footer>
+
+<script>
+const fmt = n => n == null ? "" : Math.round(n).toLocaleString("fr-FR");
+const eur = n => n == null ? "Prix sur demande" : fmt(n) + " €";
+const TYPES = {V:"Maison", VP:"Maison avec piscine", A:"Appartement", T:"Terrain"};
+const cat = t => t === "A" ? "A" : t === "T" ? "T" : "M";
+const pm2 = b => (b.prix && b.surface >= 15) ? b.prix / b.surface : null;
+const median = a => { a = a.filter(x => x != null).sort((x, y) => x - y); if (!a.length) return null; const m = a.length >> 1; return a.length % 2 ? a[m] : (a[m-1] + a[m]) / 2; };
+const q = (a, p) => { a = a.filter(x => x != null).sort((x, y) => x - y); if (!a.length) return null; const i = (a.length - 1) * p, lo = Math.floor(i); return a[lo] + (a[Math.ceil(i)] - a[lo]) * (i - lo); };
+const dfr = d => new Date(d + "T12:00:00").toLocaleDateString("fr-FR", {day:"numeric", month:"long", year:"numeric"});
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const safeUrl = u => /^https?:\/\//.test(u || "") ? u : "#";
+
+let D, ACT, NOUS, CONC, BYID, MATCH;
+
+function sameBien(a, b) {
+  if (cat(a.type) !== cat(b.type) || !a.surface || !b.surface || Math.abs(a.surface - b.surface) > 2) return false;
+  const tKnown = a.terrain && b.terrain;
+  if (tKnown && Math.abs(a.terrain - b.terrain) > 15) return false;
+  if (a.prix && b.prix && Math.abs(b.prix / a.prix - 1) > 0.25) return false;
+  return (tKnown && Math.abs(a.terrain - b.terrain) <= 10) || (a.prix && b.prix && Math.abs(b.prix / a.prix - 1) <= 0.005);
+}
+function comparables(b) {
+  let pool = CONC.filter(c => cat(c.type) === cat(b.type) && pm2(c) && b.surface && c.surface >= b.surface * 0.7 && c.surface <= b.surface * 1.3);
+  let zone = "toute la presqu'île";
+  if (b.secteur) { const s = pool.filter(c => c.secteur === b.secteur); if (s.length >= 4) { pool = s; zone = b.secteur; } }
+  return {pool, zone, med: median(pool.map(pm2)), p25: q(pool.map(pm2), .25), p75: q(pool.map(pm2), .75)};
+}
+
+function card(b, opts = {}) {
+  const ev = opts.ev;
+  const img = b.image ? `<img src="${esc(safeUrl(b.image))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : "";
+  const evLabel = ev ? {nouveau:"Nouveau", baisse:"Baisse de prix", hausse:"Hausse de prix", retire:"Retiré / vendu ?", remis:"Remis en vente"}[ev.type] : "";
+  const old = ev && ev.avant ? `<s>${fmt(ev.avant)} €</s>` : "";
+  const delta = ev && ev.avant && ev.prix ? ` <span class="pill ${ev.prix < ev.avant ? "good" : "warn"}">${ev.prix < ev.avant ? "−" : "+"}${Math.abs(Math.round((ev.prix / ev.avant - 1) * 100))} %</span>` : "";
+  const f = [TYPES[b.type] || b.type, b.surface ? fmt(b.surface) + " m²" : "", b.chambres ? b.chambres + " ch." : "", b.terrain ? "terrain " + fmt(b.terrain) + " m²" : "", b.secteur || ""].filter(Boolean);
+  const m2 = pm2(b);
+  return `<article class="card${b.nous ? " nous" : ""}">
+    <a class="ph" href="${esc(safeUrl(b.url))}" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir l'annonce">
+      ${img}<span class="noimg">${b.image ? "" : "Photo sur l'annonce"}</span>
+      <span class="ag">${esc(b.nous ? "Vous" : b.agence)}</span>${ev ? `<span class="ev ${ev.type}">${evLabel}</span>` : ""}
+    </a>
+    <div class="cb">
+      <div class="price">${eur(b.prix)}${old}${delta}</div>
+      <div class="facts">${f.map(x => `<span>${esc(x)}</span>`).join("")}${m2 ? `<span>${fmt(m2)} €/m²</span>` : ""}</div>
+      <div class="ttl">${esc(b.titre)}</div>
+      ${opts.extra || ""}
+      <a class="cta" href="${esc(safeUrl(b.url))}" target="_blank" rel="noopener noreferrer">Voir l'annonce →</a>
+    </div></article>`;
+}
+
+function viewSemaine() {
+  const last = D.releves[D.releves.length - 1];
+  const since = D.releves.length > 1 ? D.releves[Math.max(0, D.releves.length - 4)] : last;
+  const evs = D.evenements.filter(e => e.date >= since && BYID[e.id] && !BYID[e.id].nous);
+  const by = t => evs.filter(e => e.type === t);
+  const cheaper = [];
+  NOUS.forEach(n => (MATCH[n.id] || []).forEach(c => { if (n.prix && c.prix && c.prix < n.prix * 0.99) cheaper.push([n, c]); }));
+  const tiles = [
+    ["nouveau", by("nouveau").length, "nouveaux biens chez les concurrents"],
+    ["baisse", by("baisse").length, "baisses de prix"],
+    ["retire", by("retire").length, "biens retirés (vendus probables)"],
+    ["moins-cher", cheaper.length, "de vos biens affichés moins cher ailleurs", true],
+  ];
+  let h = `<h2>Ce qui a bougé</h2><p class="sub">Depuis le relevé du ${dfr(since)}. Les annonces sont relevées ${esc(D.frequence || "régulièrement")} sur les sites des agences.</p>
+  <div class="tiles">${tiles.map(([id, n, l, al]) => `<a class="tile${al && n ? " alert" : ""}" href="#${id === "moins-cher" ? "semaine" : "semaine"}" onclick="document.getElementById('s-${id}')?.scrollIntoView({behavior:'smooth'});return false;"><b>${n}</b><span>${l}</span></a>`).join("")}</div>`;
+  if (D.releves.length === 1) h += `<div class="note"><b>Premier relevé effectué le ${dfr(last)}.</b> Il sert de point de départ : les nouveautés, baisses de prix et biens retirés apparaîtront ici dès le prochain relevé, dans 2 jours.</div>`;
+  const sect = (id, title, sub, list) => `<h2 id="s-${id}">${title}</h2><p class="sub">${sub}</p>` + (list.length ? `<div class="grid">${list.join("")}</div>` : `<div class="empty">Rien pour l'instant.</div>`);
+  h += sect("moins-cher", "Vos biens affichés moins cher ailleurs", "Même bien reconnu chez un concurrent (même surface et même terrain), à un prix inférieur au vôtre. À confirmer en ouvrant les deux annonces.",
+    cheaper.sort((a, b) => a[1].prix / a[0].prix - b[1].prix / b[0].prix).map(([n, c]) => card(c, {extra: `<div class="pills"><span class="pill bad">${Math.round((c.prix / n.prix - 1) * 100)} % vs votre prix (${fmt(n.prix)} €)</span></div><div class="ttl">Chez vous : <a href="${esc(safeUrl(n.url))}" target="_blank" rel="noopener noreferrer">${esc(n.titre)}</a></div>`})));
+  h += sect("nouveau", "Nouveaux biens chez les concurrents", "Annonces apparues depuis le dernier relevé.", by("nouveau").map(e => card(BYID[e.id], {ev: e, extra: (MATCH_REV[e.id] ? `<div class="pills"><span class="pill acc">Aussi chez vous</span></div>` : "")})));
+  h += sect("baisse", "Baisses de prix", "Prix affiché en baisse par rapport au relevé précédent.", by("baisse").map(e => card(BYID[e.id], {ev: e})));
+  h += sect("retire", "Biens retirés des sites", "Annonces disparues : bien vendu, sous compromis ou mandat retiré.", by("retire").map(e => card(BYID[e.id], {ev: e})));
+  const hausses = by("hausse").concat(by("remis"));
+  if (hausses.length) h += sect("autres", "Hausses et remises en vente", "", hausses.map(e => card(BYID[e.id], {ev: e})));
+  return h;
+}
+
+function viewVos() {
+  const rows = NOUS.map(n => ({n, c: comparables(n), m: MATCH[n.id] || []}));
+  const pos = r => { const v = pm2(r.n); return v && r.c.med && r.c.pool.length >= 4 ? v / r.c.med - 1 : null; };
+  const hi = rows.filter(r => pos(r) > 0.2).length, lo = rows.filter(r => pos(r) < -0.2 && pos(r) !== null).length, sh = rows.filter(r => r.m.length).length;
+  let h = `<h2>Vos biens face au marché</h2><p class="sub">Chaque bien est comparé aux annonces des concurrents de même catégorie et de surface proche (±30 %), dans le même secteur quand il y en a assez. Le €/m² ne tient compte ni du terrain ni de la vue : c'est un repère, pas une estimation.</p>
+  <div class="tiles"><div class="tile"><b>${NOUS.length}</b><span>biens en vente chez vous</span></div>
+  <div class="tile"><b>${hi}</b><span>plus de 20 % au-dessus du marché</span></div>
+  <div class="tile"><b>${lo}</b><span>plus de 20 % en dessous</span></div>
+  <div class="tile"><b>${sh}</b><span>aussi en vente chez un concurrent</span></div></div>
+  <div class="filters"><label for="fv-tri">Trier par<select id="fv-tri"><option value="ecart">Écart avec le marché</option><option value="date">Date de mise en ligne</option><option value="prix">Prix</option></select></label>
+  <label for="fv-part">Afficher<select id="fv-part"><option value="">Tous vos biens</option><option value="ailleurs">Aussi chez un concurrent</option><option value="haut">Au-dessus du marché</option><option value="bas">En dessous du marché</option><option value="ancien">En ligne depuis plus d'un an</option></select></label></div>
+  <p class="count" id="fv-count"></p><div class="grid" id="fv-grid"></div>`;
+  setTimeout(() => {
+    const draw = () => {
+      const tri = document.getElementById("fv-tri").value, part = document.getElementById("fv-part").value;
+      const yearAgo = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10);
+      let L = rows.filter(r => !part || (part === "ailleurs" && r.m.length) || (part === "haut" && pos(r) > 0.2) || (part === "bas" && pos(r) !== null && pos(r) < -0.2) || (part === "ancien" && r.n.first_seen < yearAgo));
+      L.sort((a, b) => tri === "date" ? (b.n.first_seen > a.n.first_seen ? 1 : -1) : tri === "prix" ? (b.n.prix || 0) - (a.n.prix || 0) : Math.abs(pos(b) ?? 0) - Math.abs(pos(a) ?? 0));
+      document.getElementById("fv-count").textContent = L.length + " bien" + (L.length > 1 ? "s" : "");
+      document.getElementById("fv-grid").innerHTML = L.map(r => {
+        const p = pos(r), pills = [];
+        if (p !== null) pills.push(`<span class="pill ${p > 0.2 ? "bad" : p < -0.2 ? "good" : ""}">${p > 0 ? "+" : ""}${Math.round(p * 100)} % vs marché</span>`);
+        else if (!r.n.prix) pills.push(`<span class="pill">Prix sur demande</span>`);
+        if (r.n.first_seen < yearAgo) pills.push(`<span class="pill warn">En ligne depuis le ${dfr(r.n.first_seen)}</span>`);
+        r.m.forEach(c => pills.push(`<a class="pill acc" href="${esc(safeUrl(c.url))}" target="_blank" rel="noopener noreferrer">Aussi chez ${esc(c.agence)}${c.prix && r.n.prix ? (Math.abs(c.prix / r.n.prix - 1) < .01 ? " (même prix)" : ` (${fmt(c.prix)} €)`) : ""}</a>`));
+        const ex = r.c.pool.slice().sort((a, b) => Math.abs(a.surface - r.n.surface) - Math.abs(b.surface - r.n.surface)).slice(0, 5);
+        const cmp = r.c.med ? `<div class="facts"><span>Marché (${esc(r.c.zone)}, ${r.c.pool.length} biens) : ${fmt(r.c.med)} €/m²${r.c.pool.length >= 4 ? `, de ${fmt(r.c.p25)} à ${fmt(r.c.p75)}` : ""}</span></div>
+          <details class="cmp"><summary>Voir les biens comparables</summary><ul>${ex.map(c => `<li><a href="${esc(safeUrl(c.url))}" target="_blank" rel="noopener noreferrer">${esc(c.agence)}</a> · ${fmt(c.surface)} m² · ${eur(c.prix)} · ${fmt(pm2(c))} €/m²${c.secteur ? " · " + esc(c.secteur) : ""}</li>`).join("")}</ul></details>` : "";
+        return card(r.n, {extra: `<div class="pills">${pills.join("")}</div>${cmp}`});
+      }).join("") || `<div class="empty">Aucun bien ne correspond.</div>`;
+    };
+    ["fv-tri", "fv-part"].forEach(id => document.getElementById(id).addEventListener("change", draw)); draw();
+  });
+  return h;
+}
+
+function viewConc() {
+  const ags = D.agences.map(a => a.nom);
+  const st = ags.map(a => {
+    const L = ACT.filter(b => b.agence === a), M = L.filter(b => cat(b.type) === "M");
+    return {a, n: L.length, m: M.length, ap: L.filter(b => b.type === "A").length, cache: L.length ? L.filter(b => !b.prix).length / L.length : 0,
+      prix: median(L.map(b => b.prix)), m2: median(M.map(pm2)), surf: median(M.map(b => b.surface)),
+      ret: D.biens.filter(b => b.agence === a && b.statut === "retiré").length, note: (D.agences.find(x => x.nom === a) || {}).note, site: (D.agences.find(x => x.nom === a) || {}).site};
+  }).sort((x, y) => y.n - x.n);
+  const sects = {};
+  ACT.filter(b => cat(b.type) === "M" && pm2(b) && b.secteur).forEach(b => (sects[b.secteur] = sects[b.secteur] || []).push(pm2(b)));
+  const S = Object.entries(sects).filter(([, v]) => v.length >= 5).map(([s, v]) => [s, median(v), v.length]).sort((a, b) => b[1] - a[1]);
+  const max = Math.max(...S.map(s => s[1]));
+  return `<h2>Les agences</h2><p class="sub">Biens à vendre sur la presqu'île, relevés sur le site propre de chaque agence. Les prix sur demande sont exclus des médianes.</p>
+  <div class="tablewrap"><table><thead><tr><th>Agence</th><th class="n">Biens</th><th class="n">Maisons</th><th class="n">Apparts</th><th class="n">Prix sur demande</th><th class="n">Prix médian</th><th class="n">€/m² maisons</th><th class="n">Surface maisons</th><th class="n">Retirés depuis le début</th><th>Site</th></tr></thead><tbody>
+  ${st.map(s => `<tr class="${s.a === "Agence du Cap" ? "us" : ""}"><td>${esc(s.a === "Agence du Cap" ? "Vous (Agence du Cap)" : s.a)}${s.note ? `<div class="meta">${esc(s.note)}</div>` : ""}</td><td class="n">${s.n}</td><td class="n">${s.m}</td><td class="n">${s.ap}</td><td class="n">${Math.round(s.cache * 100)} %</td><td class="n">${s.prix ? fmt(s.prix) + " €" : "–"}</td><td class="n">${s.m2 ? fmt(s.m2) + " €" : "–"}</td><td class="n">${s.surf ? fmt(s.surf) + " m²" : "–"}</td><td class="n">${s.ret}</td><td><a href="${esc(safeUrl(s.site))}" target="_blank" rel="noopener noreferrer">Ouvrir</a></td></tr>`).join("")}
+  </tbody></table></div>
+  <h2>Prix au m² des maisons par secteur</h2><p class="sub">Médiane des annonces avec prix, toutes agences confondues (secteurs d'au moins 5 maisons).</p>
+  <div class="bars">${S.map(([s, v, n]) => `<div class="bar"><span>${esc(s)}</span><i style="width:${(v / max * 100).toFixed(1)}%"></i><em>${fmt(v)} €</em></div>`).join("")}
+  <div class="meta">Nombre de maisons : ${S.map(([s, , n]) => esc(s) + " " + n).join(" · ")}</div></div>`;
+}
+
+function viewTous() {
+  const ags = D.agences.map(a => a.nom), secs = [...new Set(ACT.map(b => b.secteur).filter(Boolean))].sort();
+  setTimeout(() => {
+    const ids = ["ft-ag", "ft-type", "ft-sec", "ft-max", "ft-txt", "ft-tri", "ft-stat"];
+    const draw = () => {
+      const [ag, ty, se, mx, tx, tri, stt] = ids.map(i => document.getElementById(i).value);
+      const t = tx.trim().toLowerCase();
+      let L = D.biens.filter(b => (stt === "retire" ? b.statut === "retiré" : b.statut === "actif") && (!ag || b.agence === ag) && (!ty || cat(b.type) === ty) && (!se || b.secteur === se) && (!mx || (b.prix && b.prix <= +mx)) && (!t || (b.titre + " " + (b.secteur || "")).toLowerCase().includes(t)));
+      const k = {prix_asc: b => b.prix ?? 1e12, prix_desc: b => -(b.prix ?? 0), m2: b => pm2(b) ?? 1e12, surface: b => -(b.surface ?? 0), recent: b => -Date.parse(b.first_seen)}[tri];
+      L.sort((a, b) => k(a) - k(b));
+      document.getElementById("ft-count").textContent = L.length + " bien" + (L.length > 1 ? "s" : "") + (L.length > 120 ? " (120 premiers affichés, affinez les filtres)" : "");
+      document.getElementById("ft-grid").innerHTML = L.slice(0, 120).map(b => card(b, {extra: b.statut === "retiré" ? `<div class="pills"><span class="pill bad">Retiré le ${dfr(b.retire_le)}</span></div>` : (b.hist.length > 1 ? `<div class="pills"><span class="pill">Prix initial ${eur(b.hist[0][1])}</span></div>` : "")})).join("") || `<div class="empty">Aucun bien ne correspond.</div>`;
+    };
+    ids.forEach(i => document.getElementById(i).addEventListener("input", draw)); draw();
+  });
+  return `<h2>Tous les biens</h2><p class="sub">Toutes les annonces relevées, les vôtres comprises (encadrées).</p>
+  <div class="filters">
+    <label for="ft-ag">Agence<select id="ft-ag"><option value="">Toutes</option>${ags.map(a => `<option>${esc(a)}</option>`).join("")}</select></label>
+    <label for="ft-type">Type<select id="ft-type"><option value="">Tous</option><option value="M">Maisons</option><option value="A">Appartements</option><option value="T">Terrains</option></select></label>
+    <label for="ft-sec">Secteur<select id="ft-sec"><option value="">Tous</option>${secs.map(s => `<option>${esc(s)}</option>`).join("")}</select></label>
+    <label for="ft-max">Prix maximum<select id="ft-max"><option value="">Sans limite</option>${[1e6, 1.5e6, 2e6, 3e6, 5e6].map(v => `<option value="${v}">${fmt(v)} €</option>`).join("")}</select></label>
+    <label for="ft-txt">Recherche<input id="ft-txt" type="search" placeholder="Mimbeau, première ligne…"></label>
+    <label for="ft-tri">Trier par<select id="ft-tri"><option value="recent">Plus récents</option><option value="prix_asc">Prix croissant</option><option value="prix_desc">Prix décroissant</option><option value="m2">€/m² croissant</option><option value="surface">Surface</option></select></label>
+    <label for="ft-stat">Statut<select id="ft-stat"><option value="actif">En vente</option><option value="retire">Retirés / vendus</option></select></label>
+  </div><p class="count" id="ft-count"></p><div class="grid" id="ft-grid"></div>`;
+}
+
+let MATCH_REV = {};
+function route() {
+  const v = (location.hash || "#semaine").slice(1);
+  const views = {semaine: viewSemaine, "vos-biens": viewVos, concurrents: viewConc, tous: viewTous};
+  const f = views[v] || viewSemaine;
+  document.querySelectorAll("nav.tabs a").forEach(a => a.setAttribute("aria-current", a.getAttribute("href") === "#" + (views[v] ? v : "semaine") ? "page" : "false"));
+  document.getElementById("app").innerHTML = f();
+}
+
+fetch("data.json?v=" + Date.now()).then(r => r.json()).then(d => {
+  D = d; ACT = d.biens.filter(b => b.statut === "actif");
+  NOUS = ACT.filter(b => b.nous); CONC = ACT.filter(b => !b.nous);
+  BYID = Object.fromEntries(d.biens.map(b => [b.id, b]));
+  MATCH = {}; MATCH_REV = {};
+  NOUS.forEach(n => { MATCH[n.id] = CONC.filter(c => sameBien(n, c)); MATCH[n.id].forEach(c => MATCH_REV[c.id] = n.id); });
+  document.getElementById("meta").textContent = `Relevé du ${dfr(d.maj)} · ${d.agences.length - 1} agences concurrentes · ${CONC.length} biens concurrents et ${NOUS.length} de vos biens en vente`;
+  document.getElementById("foot").textContent = "Données relevées sur les sites des agences, pour un usage interne de veille. « Retiré » signifie que l'annonce a disparu du site : vente, compromis ou fin de mandat. Rapprochements « même bien » et €/m² indicatifs.";
+  route(); addEventListener("hashchange", route);
+}).catch(() => { document.getElementById("app").innerHTML = '<div class="empty">Les données n\'ont pas pu être chargées. Rechargez la page dans un instant.</div>'; });
+</script>
+</body>
+</html>
