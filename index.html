@@ -81,6 +81,11 @@ tr.us td{background:var(--accent-soft);font-weight:600}
 details.cmp{font-size:13px}
 details.cmp summary{cursor:pointer;color:var(--accent);font-weight:600}
 details.cmp ul{margin:6px 0 0;padding-left:18px}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+.mini{position:relative;aspect-ratio:3/2;border-radius:6px;overflow:hidden;background:var(--line)}
+.mini img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.mini span{position:absolute;left:4px;bottom:4px;background:rgba(28,31,33,.85);color:#fff;font-size:11px;font-weight:600;padding:1px 6px;border-radius:4px}
+.simrow{border-top:1px solid var(--line);padding:6px 0;display:flex;flex-direction:column;gap:4px}
 .empty{color:var(--ink-2);background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:18px}
 footer{color:var(--ink-2);font-size:12px;padding:20px 0 40px;border-top:1px solid var(--line)}
 @media (max-width:520px){h1{font-size:24px}.bar{grid-template-columns:90px 1fr 70px}}
@@ -118,18 +123,31 @@ const dfr = d => new Date(d + "T12:00:00").toLocaleDateString("fr-FR", {day:"num
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const safeUrl = u => /^https?:\/\//.test(u || "") ? u : "#";
 
-let D, ACT, NOUS, CONC, BYID, MATCH;
+let D, ACT, NOUS, CONC, BYID, MATCH, POSS, VERIF = {};
 
-function sameBien(a, b) {
-  // Rapprochement prudent : même catégorie, même nombre de chambres si connu, surface et terrain quasi identiques.
-  if (cat(a.type) !== cat(b.type) || !a.surface || !b.surface) return false;
-  const dS = Math.abs(a.surface - b.surface);
-  if (dS > 2) return false;
-  if (a.chambres && b.chambres && a.chambres !== b.chambres) return false;
-  if (a.prix && b.prix && Math.abs(b.prix / a.prix - 1) > 0.25) return false;
-  const tKnown = a.terrain && b.terrain, dT = tKnown ? Math.abs(a.terrain - b.terrain) : null;
-  if (tKnown) return dS === 0 ? dT <= 10 : dT <= 5;
-  return dS === 0 && a.prix && b.prix && Math.abs(b.prix / a.prix - 1) <= 0.005;
+// Rapprochement multi-critères, tolérant aux erreurs de saisie (surface ou terrain approximatifs, chambres mal comptées).
+// Chaque critère ajoute ou retire des points ; aucun ne suffit seul. Score max ≈ 105.
+function matchScore(a, b) {
+  if (cat(a.type) !== cat(b.type) || cat(a.type) === "T") return null;
+  let s = 0; const why = [];
+  const rel = (x, y) => Math.abs(x - y) / Math.max(x, y);
+  if (a.surface && b.surface) { const r = rel(a.surface, b.surface);
+    if (r <= .03) { s += 30; why.push("surface identique"); } else if (r <= .10) { s += 20; why.push("surface proche"); } else if (r <= .20) { s += 8; why.push("surface approchante"); } else s -= 10; }
+  if (a.terrain && b.terrain) { const r = rel(a.terrain, b.terrain);
+    if (r <= .03) { s += 25; why.push("terrain identique"); } else if (r <= .10) { s += 15; why.push("terrain proche"); } else if (r <= .25) s += 5; else s -= 10; }
+  if (a.chambres && b.chambres) { const d = Math.abs(a.chambres - b.chambres);
+    if (!d) { s += 15; why.push("mêmes chambres"); } else if (d === 1) s += 5; else s -= 10; }
+  if (a.secteur && b.secteur) { if (a.secteur === b.secteur) { s += 15; why.push("même secteur"); } else s -= 25; }
+  if (a.prix && b.prix) { const r = rel(a.prix, b.prix);
+    if (r <= .02) { s += 15; why.push("même prix"); } else if (r <= .10) { s += 8; why.push("prix proche"); } else if (r <= .25) s += 2; else if (r > .40) s -= 15; }
+  if ((a.type === "VP") === (b.type === "VP")) s += 5; else s -= 5;
+  return {s, why};
+}
+const SEUIL_PROBABLE = 85, SEUIL_POSSIBLE = 60;
+function photo(u, label) { return `<div class="mini">${u ? `<img src="${esc(safeUrl(u))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}<span>${esc(label)}</span></div>`; }
+function duo(n, c, m) {
+  const lvl = m.ver ? `<span class="pill good">Même bien, vérifié sur photos</span>` : m.s >= SEUIL_PROBABLE ? `<span class="pill acc">Probablement le même bien</span>` : `<span class="pill">Ressemblance à vérifier</span>`;
+  return `<div class="duo">${photo(n.image, "Vous")}${photo(c.image, c.agence)}</div><div class="pills">${lvl}</div>${m.why.length ? `<div class="facts"><span>${esc(m.why.join(" · "))}</span></div>` : ""}`;
 }
 function comparables(b) {
   let pool = CONC.filter(c => cat(c.type) === cat(b.type) && pm2(c) && b.surface && c.surface >= b.surface * 0.7 && c.surface <= b.surface * 1.3);
@@ -166,7 +184,7 @@ function viewSemaine() {
   const evs = D.evenements.filter(e => e.date >= since && BYID[e.id] && !BYID[e.id].nous);
   const by = t => evs.filter(e => e.type === t);
   const cheaper = [];
-  NOUS.forEach(n => (MATCH[n.id] || []).forEach(c => { if (n.prix && c.prix && c.prix < n.prix * 0.99) cheaper.push([n, c]); }));
+  NOUS.forEach(n => (POSS[n.id] || []).forEach(([c, m]) => { if ((m.ver || m.s >= SEUIL_PROBABLE) && n.prix && c.prix && c.prix < n.prix * 0.99) cheaper.push([n, c, m]); }));
   const tiles = [
     ["nouveau", by("nouveau").length, "nouveaux biens chez les concurrents"],
     ["baisse", by("baisse").length, "baisses de prix"],
@@ -177,8 +195,8 @@ function viewSemaine() {
   <div class="tiles">${tiles.map(([id, n, l, al]) => `<a class="tile${al && n ? " alert" : ""}" href="#${id === "moins-cher" ? "semaine" : "semaine"}" onclick="document.getElementById('s-${id}')?.scrollIntoView({behavior:'smooth'});return false;"><b>${n}</b><span>${l}</span></a>`).join("")}</div>`;
   if (D.releves.length === 1) h += `<div class="note"><b>Premier relevé effectué le ${dfr(last)}.</b> Il sert de point de départ : les nouveautés, baisses de prix et biens retirés apparaîtront ici dès le prochain relevé, dans 2 jours.</div>`;
   const sect = (id, title, sub, list) => `<h2 id="s-${id}">${title}</h2><p class="sub">${sub}</p>` + (list.length ? `<div class="grid">${list.join("")}</div>` : `<div class="empty">Rien pour l'instant.</div>`);
-  h += sect("moins-cher", "Vos biens peut-être affichés moins cher ailleurs", "Annonce d'un concurrent dont la surface, le terrain et le nombre de chambres correspondent à l'un de vos biens, à un prix inférieur. C'est probablement le même bien, mais ce n'est pas certain : comparez les photos des deux annonces avant d'en tirer une conclusion.",
-    cheaper.sort((a, b) => a[1].prix / a[0].prix - b[1].prix / b[0].prix).map(([n, c]) => card(c, {extra: `<div class="pills">${c._ver ? '<span class="pill good">Même bien, vérifié sur photos</span>' : '<span class="pill">À vérifier sur photos</span>'}<span class="pill bad">${Math.round((c.prix / n.prix - 1) * 100)} % vs votre prix (${fmt(n.prix)} €)</span></div><div class="ttl">Votre annonce à comparer : <a href="${esc(safeUrl(n.url))}" target="_blank" rel="noopener noreferrer">${esc(n.titre)}</a></div>`})));
+  h += sect("moins-cher", "Vos biens peut-être affichés moins cher ailleurs", "Annonce d'un concurrent qui ressemble fortement à l'un de vos biens (surface, terrain, chambres, secteur, prix, avec une marge d'erreur), affichée moins cher. Comparez les deux photos : si ce n'est pas le même bien, ignorez la fiche.",
+    cheaper.sort((a, b) => a[1].prix / a[0].prix - b[1].prix / b[0].prix).map(([n, c, m]) => card(c, {extra: `${duo(n, c, m)}<div class="pills"><span class="pill bad">${Math.round((c.prix / n.prix - 1) * 100)} % vs votre prix (${fmt(n.prix)} €)</span></div><div class="ttl">Votre annonce : <a href="${esc(safeUrl(n.url))}" target="_blank" rel="noopener noreferrer">${esc(n.titre)}</a></div>`})));
   h += sect("nouveau", "Nouveaux biens chez les concurrents", "Annonces apparues depuis le dernier relevé.", by("nouveau").map(e => card(BYID[e.id], {ev: e, extra: (MATCH_REV[e.id] ? `<div class="pills"><span class="pill acc">Peut-être aussi chez vous</span></div>` : "")})));
   h += sect("baisse", "Baisses de prix", "Prix affiché en baisse par rapport au relevé précédent.", by("baisse").map(e => card(BYID[e.id], {ev: e})));
   h += sect("retire", "Biens retirés des sites", "Annonces disparues : bien vendu, sous compromis ou mandat retiré.", by("retire").map(e => card(BYID[e.id], {ev: e})));
@@ -188,22 +206,22 @@ function viewSemaine() {
 }
 
 function viewVos() {
-  const rows = NOUS.map(n => ({n, c: comparables(n), m: MATCH[n.id] || []}));
+  const rows = NOUS.map(n => ({n, c: comparables(n), m: MATCH[n.id] || [], p: POSS[n.id] || []}));
   const pos = r => { const v = pm2(r.n); return v && r.c.med && r.c.pool.length >= 4 ? v / r.c.med - 1 : null; };
-  const hi = rows.filter(r => pos(r) > 0.2).length, lo = rows.filter(r => pos(r) < -0.2 && pos(r) !== null).length, sh = rows.filter(r => r.m.length).length;
+  const hi = rows.filter(r => pos(r) > 0.2).length, lo = rows.filter(r => pos(r) < -0.2 && pos(r) !== null).length, sh = rows.filter(r => r.m.length).length, sh2 = rows.filter(r => r.p.length).length;
   let h = `<h2>Vos biens face au marché</h2><p class="sub">Chaque bien est comparé aux annonces des concurrents de même catégorie et de surface proche (±30 %), dans le même secteur quand il y en a assez. Le €/m² ne tient compte ni du terrain ni de la vue : c'est un repère, pas une estimation.</p>
   <div class="tiles"><div class="tile"><b>${NOUS.length}</b><span>biens en vente chez vous</span></div>
   <div class="tile"><b>${hi}</b><span>plus de 20 % au-dessus du marché</span></div>
   <div class="tile"><b>${lo}</b><span>plus de 20 % en dessous</span></div>
-  <div class="tile"><b>${sh}</b><span>peut-être aussi en vente chez un concurrent</span></div></div>
+  <div class="tile"><b>${sh}</b><span>probablement aussi chez un concurrent (${sh2} avec une annonce ressemblante)</span></div></div>
   <div class="filters"><label for="fv-tri">Trier par<select id="fv-tri"><option value="ecart">Écart avec le marché</option><option value="date">Date de mise en ligne</option><option value="prix">Prix</option></select></label>
-  <label for="fv-part">Afficher<select id="fv-part"><option value="">Tous vos biens</option><option value="ailleurs">Peut-être aussi chez un concurrent</option><option value="haut">Au-dessus du marché</option><option value="bas">En dessous du marché</option><option value="ancien">En ligne depuis plus d'un an</option></select></label></div>
+  <label for="fv-part">Afficher<select id="fv-part"><option value="">Tous vos biens</option><option value="ailleurs">Avec une annonce ressemblante ailleurs</option><option value="haut">Au-dessus du marché</option><option value="bas">En dessous du marché</option><option value="ancien">En ligne depuis plus d'un an</option></select></label></div>
   <p class="count" id="fv-count"></p><div class="grid" id="fv-grid"></div>`;
   setTimeout(() => {
     const draw = () => {
       const tri = document.getElementById("fv-tri").value, part = document.getElementById("fv-part").value;
       const yearAgo = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10);
-      let L = rows.filter(r => !part || (part === "ailleurs" && r.m.length) || (part === "haut" && pos(r) > 0.2) || (part === "bas" && pos(r) !== null && pos(r) < -0.2) || (part === "ancien" && r.n.first_seen < yearAgo));
+      let L = rows.filter(r => !part || (part === "ailleurs" && r.p.length) || (part === "haut" && pos(r) > 0.2) || (part === "bas" && pos(r) !== null && pos(r) < -0.2) || (part === "ancien" && r.n.first_seen < yearAgo));
       L.sort((a, b) => tri === "date" ? (b.n.first_seen > a.n.first_seen ? 1 : -1) : tri === "prix" ? (b.n.prix || 0) - (a.n.prix || 0) : Math.abs(pos(b) ?? 0) - Math.abs(pos(a) ?? 0));
       document.getElementById("fv-count").textContent = L.length + " bien" + (L.length > 1 ? "s" : "");
       document.getElementById("fv-grid").innerHTML = L.map(r => {
@@ -211,11 +229,13 @@ function viewVos() {
         if (p !== null) pills.push(`<span class="pill ${p > 0.2 ? "bad" : p < -0.2 ? "good" : ""}">${p > 0 ? "+" : ""}${Math.round(p * 100)} % vs marché</span>`);
         else if (!r.n.prix) pills.push(`<span class="pill">Prix sur demande</span>`);
         if (r.n.first_seen < yearAgo) pills.push(`<span class="pill warn">En ligne depuis le ${dfr(r.n.first_seen)}</span>`);
-        r.m.forEach(c => pills.push(`<a class="pill acc" href="${esc(safeUrl(c.url))}" target="_blank" rel="noopener noreferrer">${c._ver ? "Aussi chez" : "Peut-être aussi chez"} ${esc(c.agence)}${c.prix && r.n.prix ? (Math.abs(c.prix / r.n.prix - 1) < .01 ? " (même prix)" : ` (${fmt(c.prix)} €)`) : ""}</a>`));
+        (VERIF[r.n.id] || []).forEach(c => pills.push(`<a class="pill good" href="${esc(safeUrl(c.url))}" target="_blank" rel="noopener noreferrer">Aussi chez ${esc(c.agence)}${c.prix ? ` (${fmt(c.prix)} €)` : ""}</a>`));
+        const P = (POSS[r.n.id] || []).slice(0, 4);
+        const sim = P.length ? `<details class="cmp"${P.some(([c, m]) => m.ver || m.s >= SEUIL_PROBABLE) ? " open" : ""}><summary>Annonces ressemblantes chez les concurrents (${P.length})</summary>${P.map(([c, m]) => `<div class="simrow">${duo(r.n, c, m)}<div class="facts"><a href="${esc(safeUrl(c.url))}" target="_blank" rel="noopener noreferrer">${esc(c.agence)}</a><span>${eur(c.prix)}</span><span>${c.surface ? fmt(c.surface) + " m²" : ""}</span><span>${c.terrain ? "terrain " + fmt(c.terrain) + " m²" : ""}</span><span>${c.chambres ? c.chambres + " ch." : ""}</span></div></div>`).join("")}</details>` : "";
         const ex = r.c.pool.slice().sort((a, b) => Math.abs(a.surface - r.n.surface) - Math.abs(b.surface - r.n.surface)).slice(0, 5);
         const cmp = r.c.med ? `<div class="facts"><span>Marché (${esc(r.c.zone)}, ${r.c.pool.length} biens) : ${fmt(r.c.med)} €/m²${r.c.pool.length >= 4 ? `, de ${fmt(r.c.p25)} à ${fmt(r.c.p75)}` : ""}</span></div>
           <details class="cmp"><summary>Voir les biens comparables</summary><ul>${ex.map(c => `<li><a href="${esc(safeUrl(c.url))}" target="_blank" rel="noopener noreferrer">${esc(c.agence)}</a> · ${fmt(c.surface)} m² · ${eur(c.prix)} · ${fmt(pm2(c))} €/m²${c.secteur ? " · " + esc(c.secteur) : ""}</li>`).join("")}</ul></details>` : "";
-        return card(r.n, {extra: `<div class="pills">${pills.join("")}</div>${cmp}`});
+        return card(r.n, {extra: `<div class="pills">${pills.join("")}</div>${sim}${cmp}`});
       }).join("") || `<div class="empty">Aucun bien ne correspond.</div>`;
     };
     ["fv-tri", "fv-part"].forEach(id => document.getElementById(id).addEventListener("change", draw)); draw();
@@ -286,7 +306,19 @@ fetch("data.json?v=" + Date.now()).then(r => r.json()).then(d => {
   BYID = Object.fromEntries(d.biens.map(b => [b.id, b]));
   MATCH = {}; MATCH_REV = {};
   const VER = {}; (d.verifications || []).forEach(v => VER[v.nous + '|' + v.conc] = v);
-  NOUS.forEach(n => { MATCH[n.id] = CONC.filter(c => { const v = VER[n.id + '|' + c.id]; if (v) { c._ver = v.meme ? v : null; return v.meme; } return sameBien(n, c); }); MATCH[n.id].forEach(c => MATCH_REV[c.id] = n.id); });
+  POSS = {};
+  NOUS.forEach(n => {
+    const L = [];
+    CONC.forEach(c => { const v = VER[n.id + '|' + c.id]; if (v && !v.meme) return;
+      const m = matchScore(n, c); if (!m) return;
+      if (v && v.meme) { L.push([c, {...m, ver: v}]); return; }
+      if (m.s >= SEUIL_POSSIBLE) L.push([c, m]); });
+    L.sort((x, y) => (y[1].ver ? 999 : y[1].s) - (x[1].ver ? 999 : x[1].s));
+    POSS[n.id] = L;
+    MATCH[n.id] = L.filter(([c, m]) => m.ver || m.s >= SEUIL_PROBABLE).map(([c]) => c);
+    VERIF[n.id] = L.filter(([c, m]) => m.ver).map(([c]) => c);
+    MATCH[n.id].forEach(c => MATCH_REV[c.id] = n.id);
+  });
   document.getElementById("meta").textContent = `Relevé du ${dfr(d.maj)} · ${d.agences.length - 1} agences concurrentes · ${CONC.length} biens concurrents et ${NOUS.length} de vos biens en vente`;
   document.getElementById("foot").textContent = "Données relevées sur les sites des agences, pour un usage interne de veille. « Retiré » signifie que l'annonce a disparu du site : vente, compromis ou fin de mandat. Rapprochements « même bien » et €/m² indicatifs.";
   route(); addEventListener("hashchange", route);
