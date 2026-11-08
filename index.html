@@ -178,7 +178,7 @@ function viewSemaine() {
   if (D.releves.length === 1) h += `<div class="note"><b>Premier relevé effectué le ${dfr(last)}.</b> Il sert de point de départ : les nouveautés, baisses de prix et biens retirés apparaîtront ici dès le prochain relevé, dans 2 jours.</div>`;
   const sect = (id, title, sub, list) => `<h2 id="s-${id}">${title}</h2><p class="sub">${sub}</p>` + (list.length ? `<div class="grid">${list.join("")}</div>` : `<div class="empty">Rien pour l'instant.</div>`);
   h += sect("moins-cher", "Vos biens peut-être affichés moins cher ailleurs", "Annonce d'un concurrent dont la surface, le terrain et le nombre de chambres correspondent à l'un de vos biens, à un prix inférieur. C'est probablement le même bien, mais ce n'est pas certain : comparez les photos des deux annonces avant d'en tirer une conclusion.",
-    cheaper.sort((a, b) => a[1].prix / a[0].prix - b[1].prix / b[0].prix).map(([n, c]) => card(c, {extra: `<div class="pills"><span class="pill bad">${Math.round((c.prix / n.prix - 1) * 100)} % vs votre prix (${fmt(n.prix)} €)</span></div><div class="ttl">Votre annonce à comparer : <a href="${esc(safeUrl(n.url))}" target="_blank" rel="noopener noreferrer">${esc(n.titre)}</a></div>`})));
+    cheaper.sort((a, b) => a[1].prix / a[0].prix - b[1].prix / b[0].prix).map(([n, c]) => card(c, {extra: `<div class="pills">${c._ver ? '<span class="pill good">Même bien, vérifié sur photos</span>' : '<span class="pill">À vérifier sur photos</span>'}<span class="pill bad">${Math.round((c.prix / n.prix - 1) * 100)} % vs votre prix (${fmt(n.prix)} €)</span></div><div class="ttl">Votre annonce à comparer : <a href="${esc(safeUrl(n.url))}" target="_blank" rel="noopener noreferrer">${esc(n.titre)}</a></div>`})));
   h += sect("nouveau", "Nouveaux biens chez les concurrents", "Annonces apparues depuis le dernier relevé.", by("nouveau").map(e => card(BYID[e.id], {ev: e, extra: (MATCH_REV[e.id] ? `<div class="pills"><span class="pill acc">Peut-être aussi chez vous</span></div>` : "")})));
   h += sect("baisse", "Baisses de prix", "Prix affiché en baisse par rapport au relevé précédent.", by("baisse").map(e => card(BYID[e.id], {ev: e})));
   h += sect("retire", "Biens retirés des sites", "Annonces disparues : bien vendu, sous compromis ou mandat retiré.", by("retire").map(e => card(BYID[e.id], {ev: e})));
@@ -285,7 +285,8 @@ fetch("data.json?v=" + Date.now()).then(r => r.json()).then(d => {
   NOUS = ACT.filter(b => b.nous); CONC = ACT.filter(b => !b.nous);
   BYID = Object.fromEntries(d.biens.map(b => [b.id, b]));
   MATCH = {}; MATCH_REV = {};
-  NOUS.forEach(n => { MATCH[n.id] = CONC.filter(c => sameBien(n, c)); MATCH[n.id].forEach(c => MATCH_REV[c.id] = n.id); });
+  const VER = {}; (d.verifications || []).forEach(v => VER[v.nous + '|' + v.conc] = v);
+  NOUS.forEach(n => { MATCH[n.id] = CONC.filter(c => { const v = VER[n.id + '|' + c.id]; if (v) { c._ver = v.meme ? v : null; return v.meme; } return sameBien(n, c); }); MATCH[n.id].forEach(c => MATCH_REV[c.id] = n.id); });
   document.getElementById("meta").textContent = `Relevé du ${dfr(d.maj)} · ${d.agences.length - 1} agences concurrentes · ${CONC.length} biens concurrents et ${NOUS.length} de vos biens en vente`;
   document.getElementById("foot").textContent = "Données relevées sur les sites des agences, pour un usage interne de veille. « Retiré » signifie que l'annonce a disparu du site : vente, compromis ou fin de mandat. Rapprochements « même bien » et €/m² indicatifs.";
   route(); addEventListener("hashchange", route);
