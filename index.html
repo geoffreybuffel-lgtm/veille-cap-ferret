@@ -79,6 +79,7 @@ tr.us td{background:var(--accent-soft);font-weight:600}
 .bar i{display:block;height:14px;border-radius:4px;background:var(--copper)}
 .bar em{font-style:normal;text-align:right;font-weight:600}
 details.cmp{font-size:13px}
+.spark{display:block}
 details.cmp summary{cursor:pointer;color:var(--accent);font-weight:600}
 details.cmp ul{margin:6px 0 0;padding-left:18px}
 .duo{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
@@ -104,6 +105,7 @@ footer{color:var(--ink-2);font-size:12px;padding:20px 0 40px;border-top:1px soli
       <a href="#semaine">Nouveautés</a>
       <a href="#vos-biens">Vos biens</a>
       <a href="#concurrents">Concurrents</a>
+      <a href="#ventes">Prix vendus</a>
       <a href="#tous">Tous les biens</a>
     </nav>
   </div>
@@ -141,6 +143,14 @@ function matchScore(a, b) {
   if (a.prix && b.prix) { const r = rel(a.prix, b.prix);
     if (r <= .02) { s += 15; why.push("même prix"); } else if (r <= .10) { s += 8; why.push("prix proche"); } else if (r <= .25) s += 2; else if (r > .40) s -= 15; }
   if ((a.type === "VP") === (b.type === "VP")) s += 5; else s -= 5;
+  if (a.quartier && b.quartier) { if (a.quartier === b.quartier) { s += 10; why.push("même quartier"); } else s -= 10; }
+  if (a.f != null && b.f != null) {
+    const has = (x, k) => x.f.includes(k);
+    if (has(a, "P") && has(b, "P")) { s += 10; why.push("première ligne"); } else if (has(a, "P") !== has(b, "P")) s -= 10;
+    if (has(a, "B") && has(b, "B")) { s += 4; why.push("vue bassin"); }
+    if (has(a, "W") && has(b, "W")) { s += 3; why.push("maison bois"); }
+    if (has(a, "R") !== has(b, "R")) s -= 5;
+  }
   return {s, why};
 }
 const SEUIL_PROBABLE = 85, SEUIL_POSSIBLE = 60;
@@ -154,6 +164,51 @@ function comparables(b) {
   let zone = "toute la presqu'île";
   if (b.secteur) { const s = pool.filter(c => c.secteur === b.secteur); if (s.length >= 4) { pool = s; zone = b.secteur; } }
   return {pool, zone, med: median(pool.map(pm2)), p25: q(pool.map(pm2), .25), p75: q(pool.map(pm2), .75)};
+}
+
+
+const TODAY = new Date().toISOString().slice(0, 10);
+const days = d => d ? Math.round((Date.parse(TODAY) - Date.parse(d)) / 864e5) : null;
+const enLigne = b => b.date_annonce && b.date_annonce < b.first_seen ? b.date_annonce : b.first_seen;
+const duree = n => n == null ? "" : n < 45 ? n + " j" : n < 730 ? Math.round(n / 30.4) + " mois" : (n / 365).toFixed(1).replace(".", ",") + " ans";
+function spark(h) {
+  const pts = h.filter(x => x[1]); if (pts.length < 2) return "";
+  const v = pts.map(x => x[1]), mn = Math.min(...v), mx = Math.max(...v), W = 120, H = 28;
+  const xy = pts.map((p, i) => [i / (pts.length - 1) * (W - 6) + 3, mx === mn ? H / 2 : H - 4 - (p[1] - mn) / (mx - mn) * (H - 8)]);
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Évolution du prix"><polyline fill="none" stroke="var(--copper)" stroke-width="2" points="${xy.map(p => p.join(",")).join(" ")}"/><circle cx="${xy[xy.length-1][0]}" cy="${xy[xy.length-1][1]}" r="3" fill="var(--copper)"/></svg>`;
+}
+// Ventes réelles (DVF, base publique des notaires et de la DGFiP, via l'API du Cerema), chargées dans le navigateur.
+let DVF = null, DVF_ERR = false, DVF_P = null;
+function secteurDVF(lat, lon) {
+  if (lon > -1.165 || lat > 44.765) return "Lège";
+  if (lat < 44.662) return "Le Cap Ferret"; if (lat < 44.680) return "La Vigne"; if (lat < 44.692) return "L'Herbe";
+  if (lat < 44.700) return "Le Canon"; if (lat < 44.707) return "Piraillan"; if (lat < 44.720) return "Piquey";
+  if (lat < 44.735) return "Les Jacquets"; return "Claouey";
+}
+function loadDVF() {
+  if (DVF_P) return DVF_P;
+  const y0 = new Date().getFullYear() - 5;
+  DVF_P = (async () => {
+    let url = `https://apidf-preprod.cerema.fr/dvf_opendata/geomutations/?code_insee=33236&anneemut_min=${y0}&page_size=500`, F = [];
+    while (url) { const j = await (await fetch(url)).json(); F = F.concat(j.features || []); url = j.next ? j.next.replace(/^http:/, "https:") : null; }
+    DVF = F.filter(f => f.geometry && f.properties.libnatmut === "Vente" && ["UNE MAISON", "UN APPARTEMENT"].includes(f.properties.libtypbien)).map(f => {
+      const p = f.properties, r = f.geometry.coordinates[0][0];
+      const lat = r.reduce((a, q) => a + q[1], 0) / r.length, lon = r.reduce((a, q) => a + q[0], 0) / r.length;
+      const v = +p.valeurfonc, s = +p.sbati, t = +p.sterr;
+      return {d: p.datemut, y: +p.anneemut, v, s, t: t || null, typ: p.libtypbien === "UNE MAISON" ? "M" : "A", sect: secteurDVF(lat, lon), m2: s >= 15 && v > 50000 ? v / s : null};
+    }).filter(x => x.v > 50000 && x.sect !== "Lège");
+  })().catch(() => { DVF_ERR = true; });
+  return DVF_P;
+}
+const dvfLast = () => DVF && DVF.length ? DVF.map(x => x.d).sort().pop() : null;
+const monthsBefore = (d, m) => { const x = new Date(d + "T12:00:00"); x.setMonth(x.getMonth() - m); return x.toISOString().slice(0, 10); };
+function ventesComparables(b, mois = 36) {
+  if (!DVF || !b.surface) return null;
+  const from = monthsBefore(dvfLast(), mois);
+  let L = DVF.filter(x => x.typ === cat(b.type) && x.m2 && x.d >= from && x.s >= b.surface * 0.7 && x.s <= b.surface * 1.3);
+  let zone = "presqu'île"; const sec = b.secteur && b.secteur !== "Presqu'île" ? b.secteur : null;
+  if (sec) { const z = L.filter(x => x.sect === sec); if (z.length >= 4) { L = z; zone = sec; } }
+  return L.length ? {n: L.length, med: median(L.map(x => x.m2)), zone} : null;
 }
 
 function card(b, opts = {}) {
@@ -173,6 +228,8 @@ function card(b, opts = {}) {
       <div class="price">${eur(b.prix)}${old}${delta}</div>
       <div class="facts">${f.map(x => `<span>${esc(x)}</span>`).join("")}${m2 ? `<span>${fmt(m2)} €/m²</span>` : ""}</div>
       <div class="ttl">${esc(b.titre)}</div>
+      ${!b.nous && b.statut === "actif" ? `<div class="facts"><span>En ligne depuis ${duree(days(enLigne(b)))}${b.date_annonce && b.date_annonce < b.first_seen ? "" : " (au moins)"}</span>${b.statut_annonce ? `<span class="pill warn">${esc(b.statut_annonce)}</span>` : ""}</div>` : ""}
+      ${spark(b.hist || [])}
       ${opts.extra || ""}
       <a class="cta" href="${esc(safeUrl(b.url))}" target="_blank" rel="noopener noreferrer">Voir l'annonce →</a>
     </div></article>`;
@@ -235,10 +292,12 @@ function viewVos() {
         const ex = r.c.pool.slice().sort((a, b) => Math.abs(a.surface - r.n.surface) - Math.abs(b.surface - r.n.surface)).slice(0, 5);
         const cmp = r.c.med ? `<div class="facts"><span>Marché (${esc(r.c.zone)}, ${r.c.pool.length} biens) : ${fmt(r.c.med)} €/m²${r.c.pool.length >= 4 ? `, de ${fmt(r.c.p25)} à ${fmt(r.c.p75)}` : ""}</span></div>
           <details class="cmp"><summary>Voir les biens comparables</summary><ul>${ex.map(c => `<li><a href="${esc(safeUrl(c.url))}" target="_blank" rel="noopener noreferrer">${esc(c.agence)}</a> · ${fmt(c.surface)} m² · ${eur(c.prix)} · ${fmt(pm2(c))} €/m²${c.secteur ? " · " + esc(c.secteur) : ""}</li>`).join("")}</ul></details>` : "";
-        return card(r.n, {extra: `<div class="pills">${pills.join("")}</div>${sim}${cmp}`});
+        const vc = ventesComparables(r.n); const vcl = vc ? `<div class="facts"><span>Vendu réellement (${esc(vc.zone)}, ${vc.n} ventes, 3 ans) : ${fmt(vc.med)} €/m²${pm2(r.n) ? ` · votre prix ${pm2(r.n) > vc.med ? "+" : ""}${Math.round((pm2(r.n) / vc.med - 1) * 100)} %` : ""}</span></div>` : "";
+        return card(r.n, {extra: `<div class="pills">${pills.join("")}</div>${sim}${cmp}${vcl}`});
       }).join("") || `<div class="empty">Aucun bien ne correspond.</div>`;
     };
     ["fv-tri", "fv-part"].forEach(id => document.getElementById(id).addEventListener("change", draw)); draw();
+    if (!DVF) loadDVF().then(() => { if (document.getElementById("fv-grid")) draw(); });
   });
   return h;
 }
@@ -259,6 +318,9 @@ function viewConc() {
   <div class="tablewrap"><table><thead><tr><th>Agence</th><th class="n">Biens</th><th class="n">Maisons</th><th class="n">Apparts</th><th class="n">Prix sur demande</th><th class="n">Prix médian</th><th class="n">€/m² maisons</th><th class="n">Surface maisons</th><th class="n">Retirés depuis le début</th><th>Site</th></tr></thead><tbody>
   ${st.map(s => `<tr class="${s.a === "Agence du Cap" ? "us" : ""}"><td>${esc(s.a === "Agence du Cap" ? "Vous (Agence du Cap)" : s.a)}${s.note ? `<div class="meta">${esc(s.note)}</div>` : ""}</td><td class="n">${s.n}</td><td class="n">${s.m}</td><td class="n">${s.ap}</td><td class="n">${Math.round(s.cache * 100)} %</td><td class="n">${s.prix ? fmt(s.prix) + " €" : "–"}</td><td class="n">${s.m2 ? fmt(s.m2) + " €" : "–"}</td><td class="n">${s.surf ? fmt(s.surf) + " m²" : "–"}</td><td class="n">${s.ret}</td><td><a href="${esc(safeUrl(s.site))}" target="_blank" rel="noopener noreferrer">Ouvrir</a></td></tr>`).join("")}
   </tbody></table></div>
+  <h2>Biens qui traînent chez les concurrents</h2><p class="sub">Annonces en ligne depuis le plus longtemps, d'après la date affichée sur l'annonce quand elle existe, sinon depuis le premier relevé. Ce sont souvent des vendeurs prêts à écouter une autre agence.</p>
+  ${(() => { const L = CONC.filter(b => b.statut === "actif").map(b => [b, days(enLigne(b))]).filter(x => x[1] >= 120).sort((a, b) => b[1] - a[1]).slice(0, 12);
+    return L.length ? `<div class="grid">${L.map(([b, n]) => card(b, {extra: `<div class="pills"><span class="pill warn">${duree(n)} en ligne</span>${b.hist.length > 1 && b.hist[0][1] && b.prix && b.prix < b.hist[0][1] ? `<span class="pill good">${Math.round((b.prix / b.hist[0][1] - 1) * 100)} % depuis le début</span>` : ""}</div>`})).join("")}</div>` : `<div class="empty">Pas encore assez d'historique : la durée en ligne se calcule à partir de la date affichée sur les annonces et s'enrichit à chaque relevé.</div>`; })()}
   <h2>Prix au m² des maisons par secteur</h2><p class="sub">Médiane des annonces avec prix, toutes agences confondues (secteurs d'au moins 5 maisons).</p>
   <div class="bars">${S.map(([s, v, n]) => `<div class="bar"><span>${esc(s)}</span><i style="width:${(v / max * 100).toFixed(1)}%"></i><em>${fmt(v)} €</em></div>`).join("")}
   <div class="meta">Nombre de maisons : ${S.map(([s, , n]) => esc(s) + " " + n).join(" · ")}</div></div>`;
@@ -291,10 +353,50 @@ function viewTous() {
   </div><p class="count" id="ft-count"></p><div class="grid" id="ft-grid"></div>`;
 }
 
+
+function viewVentes() {
+  if (!DVF && !DVF_ERR) { loadDVF().then(() => { if ((location.hash || "").slice(1) === "ventes") route(); }); return `<h2>Prix réellement vendus</h2><p class="sub">Chargement des ventes enregistrées par les notaires…</p>`; }
+  if (DVF_ERR || !DVF) return `<h2>Prix réellement vendus</h2><div class="empty">La base publique des ventes ne répond pas pour le moment. Réessayez dans quelques minutes.</div>`;
+  const last = dvfLast(), from24 = monthsBefore(last, 24), M = DVF.filter(x => x.typ === "M" && x.m2);
+  const secs = ["Le Cap Ferret", "La Vigne", "L'Herbe", "Le Canon", "Piraillan", "Piquey", "Les Jacquets", "Claouey"];
+  const rows = secs.map(s => {
+    const v = M.filter(x => x.sect === s && x.d >= from24), a = ACT.filter(b => cat(b.type) === "M" && pm2(b) && b.secteur === s);
+    const mv = median(v.map(x => x.m2)), ma = median(a.map(pm2));
+    return {s, n: v.length, mv, pv: median(v.map(x => x.v)), na: a.length, ma, gap: mv && ma ? ma / mv - 1 : null};
+  });
+  const years = [...new Set(M.map(x => x.y))].sort();
+  const ys = years.map(y => [y, median(M.filter(x => x.y === y).map(x => x.m2)), M.filter(x => x.y === y).length]);
+  const ymax = Math.max(...ys.map(y => y[1] || 0));
+  const allV = median(M.filter(x => x.d >= from24).map(x => x.m2)), allA = median(ACT.filter(b => cat(b.type) === "M" && pm2(b)).map(pm2));
+  setTimeout(() => {
+    const draw = () => {
+      const se = document.getElementById("fs-sec").value, ty = document.getElementById("fs-type").value;
+      const L = DVF.filter(x => (!se || x.sect === se) && (!ty || x.typ === ty)).sort((a, b) => b.d > a.d ? 1 : -1).slice(0, 80);
+      document.getElementById("fs-body").innerHTML = L.map(x => `<tr><td>${dfr(x.d)}</td><td>${esc(x.sect)}</td><td>${x.typ === "M" ? "Maison" : "Appartement"}</td><td class="n">${x.s ? fmt(x.s) + " m²" : "–"}</td><td class="n">${x.t ? fmt(x.t) + " m²" : "–"}</td><td class="n">${fmt(x.v)} €</td><td class="n">${x.m2 ? fmt(x.m2) + " €" : "–"}</td></tr>`).join("");
+    };
+    ["fs-sec", "fs-type"].forEach(i => document.getElementById(i).addEventListener("change", draw)); draw();
+  });
+  return `<h2>Prix réellement vendus</h2><p class="sub">Ventes enregistrées par les notaires (base publique DVF), sur la presqu'île, depuis ${years[0]}. Dernière vente disponible : ${dfr(last)} — la base est publiée avec quelques mois de retard. Le secteur est estimé d'après la position de la parcelle.</p>
+  <div class="tiles"><div class="tile"><b>${fmt(allV)} €</b><span>€/m² médian des maisons vendues (24 derniers mois)</span></div>
+  <div class="tile"><b>${fmt(allA)} €</b><span>€/m² médian des maisons affichées aujourd'hui</span></div>
+  <div class="tile${allA > allV * 1.15 ? " alert" : ""}"><b>${allV && allA ? (allA > allV ? "+" : "") + Math.round((allA / allV - 1) * 100) + " %" : "–"}</b><span>écart entre prix affichés et prix vendus</span></div>
+  <div class="tile"><b>${M.filter(x => x.d >= monthsBefore(last, 12)).length}</b><span>maisons vendues sur les 12 derniers mois connus</span></div></div>
+  <h2>Par secteur : vendu ou affiché</h2><p class="sub">Maisons. Un grand écart signale un secteur où les prix affichés devront baisser, ou où il reste de la marge de négociation.</p>
+  <div class="tablewrap"><table><thead><tr><th>Secteur</th><th class="n">Ventes (24 mois)</th><th class="n">Prix médian vendu</th><th class="n">€/m² vendu</th><th class="n">Annonces</th><th class="n">€/m² affiché</th><th class="n">Écart</th></tr></thead><tbody>
+  ${rows.map(r => `<tr><td>${esc(r.s)}</td><td class="n">${r.n}</td><td class="n">${r.pv ? fmt(r.pv) + " €" : "–"}</td><td class="n">${r.mv ? fmt(r.mv) + " €" : "–"}</td><td class="n">${r.na}</td><td class="n">${r.ma ? fmt(r.ma) + " €" : "–"}</td><td class="n">${r.gap == null ? "–" : `<span class="pill ${r.gap > .25 ? "bad" : r.gap > .1 ? "warn" : "good"}">${r.gap > 0 ? "+" : ""}${Math.round(r.gap * 100)} %</span>`}</td></tr>`).join("")}
+  </tbody></table></div>
+  <h2>Évolution du prix au m² vendu</h2><p class="sub">Maisons, toute la presqu'île, médiane par année.</p>
+  <div class="bars">${ys.map(([y, v, n]) => `<div class="bar"><span>${y} <small class="meta">(${n})</small></span><i style="width:${v ? (v / ymax * 100).toFixed(1) : 0}%"></i><em>${v ? fmt(v) + " €" : "–"}</em></div>`).join("")}</div>
+  <h2>Dernières ventes</h2>
+  <div class="filters"><label for="fs-sec">Secteur<select id="fs-sec"><option value="">Tous</option>${secs.map(s => `<option>${esc(s)}</option>`).join("")}</select></label>
+  <label for="fs-type">Type<select id="fs-type"><option value="">Tous</option><option value="M">Maisons</option><option value="A">Appartements</option></select></label></div>
+  <div class="tablewrap"><table><thead><tr><th>Date</th><th>Secteur estimé</th><th>Type</th><th class="n">Surface</th><th class="n">Terrain</th><th class="n">Prix</th><th class="n">€/m²</th></tr></thead><tbody id="fs-body"></tbody></table></div>`;
+}
+
 let MATCH_REV = {};
 function route() {
   const v = (location.hash || "#semaine").slice(1);
-  const views = {semaine: viewSemaine, "vos-biens": viewVos, concurrents: viewConc, tous: viewTous};
+  const views = {semaine: viewSemaine, "vos-biens": viewVos, concurrents: viewConc, ventes: viewVentes, tous: viewTous};
   const f = views[v] || viewSemaine;
   document.querySelectorAll("nav.tabs a").forEach(a => a.setAttribute("aria-current", a.getAttribute("href") === "#" + (views[v] ? v : "semaine") ? "page" : "false"));
   document.getElementById("app").innerHTML = f();
