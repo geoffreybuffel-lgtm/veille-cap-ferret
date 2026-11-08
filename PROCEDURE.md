@@ -27,6 +27,7 @@ Chaque relevé met `data.json` à jour avec `tools/update.py`, puis pousse sur `
    - Elliman : plans du site de `https://www.elliman.fr` (biens dont l'adresse cite Cap-Ferret, Canon, Herbe, Vigne, Piquey…).
    - Une Villa et des Vignes : `https://www.unevillaetdesvignes.fr/offres?lstlocalisation=3` (toutes les pages, presqu'île seulement).
    - Cabinet Bedin : `https://www.cabinet-bedin.com/agence-immobiliere/cap-ferret?page=1..3` et `.../claouey?page=1..3`.
+   - Émile Garcin : `https://www.emilegarcin.com/fr/annonces/vente-immobilier/cap-ferret` (et `.../lege-cap-ferret` si accessible).
    Si un site ne répond pas, ne pas écrire de CSV pour cette agence : ses biens ne seront pas marqués retirés.
 2. `python3 tools/update.py releve/ AAAA-MM-JJ` (date du jour, heure de Paris).
 3. Vérifier la sortie : si une agence a plus de 30 % de ses biens « retirés » d'un coup, le relevé de cette agence est sans doute incomplet :
