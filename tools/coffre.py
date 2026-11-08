@@ -3,7 +3,7 @@
     python3 tools/coffre.py ouvrir    # data.enc.json -> data.json (en clair, jamais commité)
     python3 tools/coffre.py fermer    # data.json -> data.enc.json (à commiter)
 
-Le mot de passe est lu dans la variable d'environnement VEILLE_MDP.
+Le mot de passe est lu dans la variable d'environnement VEILLE_MDP (sans tenir compte des majuscules ni des espaces).
 La page index.html déchiffre data.enc.json dans le navigateur avec le même mot de passe.
 """
 import base64, json, os, sys
@@ -14,7 +14,11 @@ from cryptography.hazmat.primitives import hashes
 ITER = 250_000
 b64 = lambda b: base64.b64encode(b).decode()
 
+def norm(m):
+    return "".join((m or "").split()).lower()
+
 def cle(mdp, sel):
+    mdp = norm(mdp)
     return PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=sel, iterations=ITER).derive(mdp.encode())
 
 def fermer(mdp, src="data.json", dst="data.enc.json"):

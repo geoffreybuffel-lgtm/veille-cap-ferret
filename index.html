@@ -92,16 +92,25 @@ details.cmp ul{margin:6px 0 0;padding-left:18px}
 .mini span{position:absolute;left:4px;bottom:4px;background:rgba(28,31,33,.85);color:#fff;font-size:11px;font-weight:600;padding:1px 6px;border-radius:4px}
 .simrow{border-top:1px solid var(--line);padding:6px 0;display:flex;flex-direction:column;gap:4px}
 .empty{color:var(--ink-2);background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:18px}
-#lock{position:fixed;inset:0;background:var(--brand);display:flex;align-items:center;justify-content:center;padding:20px;z-index:10}
+#lock{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;padding:24px;
+  background:radial-gradient(120% 90% at 20% 10%,#2b3034 0%,#1c1f21 55%,#141618 100%)}
 #lock[hidden]{display:none}
-.lockbox{background:var(--panel);border-radius:12px;padding:26px 24px;width:100%;max-width:360px;display:flex;flex-direction:column;gap:10px}
-.lockbox img{height:46px;width:auto;align-self:flex-start;filter:invert(1)}
-.lockbox h2{margin:4px 0 0}
-.lockbox label{font-size:13px;font-weight:600;color:var(--ink-2)}
-.lockbox input[type=password]{font:16px var(--body);padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
-.lockbox .rem{display:flex;gap:8px;align-items:center;font-weight:400}
-.lockbox button{font:600 15px var(--body);padding:11px;border:0;border-radius:8px;background:var(--copper);color:#fff;cursor:pointer}
-.lockbox .err{color:var(--bad);font-size:13px;min-height:1em;margin:0}
+.lockwrap{width:100%;max-width:380px;display:flex;flex-direction:column;gap:28px}
+.lockbrand{display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
+.lockbrand img{height:64px;width:auto}
+.lockbrand p{margin:0;color:#fff;font:500 22px/1.25 var(--display);letter-spacing:.01em}
+.lockbrand p span{display:block;margin-top:4px;color:var(--copper);font:600 12px var(--body);letter-spacing:.18em;text-transform:uppercase}
+.lockbox{display:flex;flex-direction:column;gap:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:22px}
+.lockbox label{font-size:12px;font-weight:600;color:#c9cdd1;letter-spacing:.06em;text-transform:uppercase}
+.pw{display:flex;align-items:stretch;border:1px solid rgba(255,255,255,.18);border-radius:10px;background:rgba(0,0,0,.25);overflow:hidden}
+.pw:focus-within{border-color:var(--copper)}
+.pw input{flex:1;min-width:0;font:16px var(--body);padding:13px 14px;border:0;background:transparent;color:#fff;outline:none}
+.pw button{border:0;background:transparent;color:#c9cdd1;font:600 12px var(--body);padding:0 14px;cursor:pointer}
+.lockbox .rem{display:flex;gap:9px;align-items:center;text-transform:none;letter-spacing:0;font-weight:400;font-size:14px}
+.lockbox .rem input{accent-color:var(--copper);width:16px;height:16px}
+.lockbox .go{font:600 15px var(--body);padding:13px;border:0;border-radius:10px;background:var(--copper);color:#fff;cursor:pointer;margin-top:4px}
+.lockbox .go:hover{filter:brightness(1.07)}
+.lockbox .err{color:#f0a39a;font-size:13px;min-height:1em;margin:0;text-align:center}
 .stale{background:var(--bad-soft);color:var(--bad);border-radius:10px;padding:10px 14px;margin:0 0 14px;font-size:14px}
 .btn{font:600 13px var(--body);padding:8px 12px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);cursor:pointer}
 footer{color:var(--ink-2);font-size:12px;padding:20px 0 40px;border-top:1px solid var(--line)}
@@ -143,16 +152,19 @@ footer{color:var(--ink-2);font-size:12px;padding:20px 0 40px;border-top:1px soli
 </header>
 <main class="wrap" id="app"><p class="sub">Chargement des données…</p></main>
 <div id="lock" hidden>
-  <form id="lock-f" class="lockbox" autocomplete="on">
-    <img src="https://www.agence-cap-ferret.fr/wp-content/uploads/2022/03/Fichier-3.svg" alt="" onerror="this.remove()">
-    <h2>Veille Cap Ferret</h2>
-    <p class="sub">Accès réservé à l'Agence Immobilière du Cap.</p>
-    <label for="lock-p">Mot de passe</label>
-    <input id="lock-p" name="password" type="password" autocomplete="current-password" required>
-    <label class="rem"><input id="lock-r" type="checkbox" checked> Rester connecté sur cet appareil</label>
-    <button type="submit">Ouvrir</button>
-    <p id="lock-e" class="err" role="alert"></p>
-  </form>
+  <div class="lockwrap">
+    <div class="lockbrand">
+      <img src="https://www.agence-cap-ferret.fr/wp-content/uploads/2022/03/Fichier-3.svg" alt="L'Agence Immobilière du Cap" onerror="this.remove()">
+      <p>Veille concurrence<br><span>Presqu'île du Cap Ferret</span></p>
+    </div>
+    <form id="lock-f" class="lockbox" autocomplete="on">
+      <label for="lock-p">Mot de passe</label>
+      <div class="pw"><input id="lock-p" name="password" type="password" autocomplete="current-password" autocapitalize="none" spellcheck="false" required><button type="button" id="lock-eye" aria-label="Afficher le mot de passe">Afficher</button></div>
+      <label class="rem"><input id="lock-r" type="checkbox" checked> Rester connecté sur cet appareil</label>
+      <button type="submit" class="go">Entrer</button>
+      <p id="lock-e" class="err" role="alert"></p>
+    </form>
+  </div>
 </div>
 <footer class="wrap" id="foot"></footer>
 
@@ -461,7 +473,9 @@ function route() {
 }
 
 const b64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
+const norm = m => (m || "").trim().toLowerCase().replace(/\s+/g, "");
 async function dechiffrer(enc, mdp) {
+  mdp = norm(mdp);
   const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(mdp), "PBKDF2", false, ["deriveKey"]);
   const cle = await crypto.subtle.deriveKey({name: "PBKDF2", salt: b64(enc.sel), iterations: enc.iter, hash: "SHA-256"}, base, {name: "AES-GCM", length: 256}, false, ["decrypt"]);
   const clair = await crypto.subtle.decrypt({name: "AES-GCM", iv: b64(enc.iv)}, cle, b64(enc.ct));
@@ -498,6 +512,7 @@ function demarrer(d) {
   let mdp = null; try { mdp = localStorage.getItem("veille_mdp"); } catch (e) {}
   if (mdp) { try { return demarrer(await dechiffrer(enc, mdp)); } catch (e) { try { localStorage.removeItem("veille_mdp"); } catch (e2) {} } }
   const lock = document.getElementById("lock"); lock.hidden = false; document.getElementById("lock-p").focus();
+  document.getElementById("lock-eye").onclick = e => { const i = document.getElementById("lock-p"); const v = i.type === "password"; i.type = v ? "text" : "password"; e.target.textContent = v ? "Masquer" : "Afficher"; i.focus(); };
   document.getElementById("lock-f").addEventListener("submit", async ev => {
     ev.preventDefault();
     const p = document.getElementById("lock-p").value, err = document.getElementById("lock-e");
@@ -506,7 +521,7 @@ function demarrer(d) {
       const d = await dechiffrer(enc, p);
       if (document.getElementById("lock-r").checked) { try { localStorage.setItem("veille_mdp", p); } catch (e) {} }
       lock.hidden = true; err.textContent = ""; demarrer(d);
-    } catch (e) { err.textContent = "Mot de passe incorrect."; }
+    } catch (e) { err.textContent = "Mot de passe incorrect. Vérifiez les tirets."; }
   });
 })();
 </script>
