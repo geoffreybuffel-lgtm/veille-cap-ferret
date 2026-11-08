@@ -8,34 +8,32 @@
 <title>Veille Cap Ferret</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  /* Bassin : encre marine, accent chenal, sable discret pour les fonds */
-  --ink:#13233a; --ink-2:#4a5a70; --line:#dfe4ea; --bg:#f5f7f9; --panel:#ffffff;
-  --accent:#0d6f7a; --accent-soft:#e3f1f2;
-  --good:#1f7a4a; --good-soft:#e2f3e9; --warn:#a35a00; --warn-soft:#fbefdc; --bad:#b42f2f; --bad-soft:#f9e3e3;
-  --display:"Newsreader", Georgia, serif; --body:"Public Sans", system-ui, -apple-system, Segoe UI, sans-serif;
-  /* Mise en page : bandeau, onglets, puis grilles de fiches avec photo */
+  /* Charte de L'Agence Immobilière du Cap : anthracite, cuivre, gris clair ; Playfair Display + Open Sans */
+  --ink:#212529; --ink-2:#545c62; --line:#e2e4e6; --bg:#f4f5f6; --panel:#ffffff;
+  --brand:#1c1f21; --accent:#b8692a; --copper:#d6873f; --accent-soft:#f8ece0;
+  --good:#2e7d4f; --good-soft:#e3f2e8; --warn:#9a5b12; --warn-soft:#fbefdc; --bad:#b03a2e; --bad-soft:#f8e2df;
+  --display:"Playfair Display", Georgia, serif; --body:"Open Sans", system-ui, -apple-system, Segoe UI, sans-serif;
+  color-scheme:light;
 }
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
-  --ink:#e6ecf2; --ink-2:#9fb0c2; --line:#2a3646; --bg:#0f1722; --panel:#162131;
-  --accent:#4fb8c2; --accent-soft:#16343a; --good:#5cc78c; --good-soft:#163024; --warn:#e2a14a; --warn-soft:#3a2a12; --bad:#f07a7a; --bad-soft:#3a1a1a; color-scheme:dark; } }
-:root[data-theme="dark"]{
-  --ink:#e6ecf2; --ink-2:#9fb0c2; --line:#2a3646; --bg:#0f1722; --panel:#162131;
-  --accent:#4fb8c2; --accent-soft:#16343a; --good:#5cc78c; --good-soft:#163024; --warn:#e2a14a; --warn-soft:#3a2a12; --bad:#f07a7a; --bad-soft:#3a1a1a; color-scheme:dark; }
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);font-variant-numeric:tabular-nums}
 a{color:var(--accent)}
 .wrap{max-width:1240px;margin:0 auto;padding:0 20px}
-header.top{background:var(--panel);border-bottom:1px solid var(--line)}
+header.top{background:var(--brand);color:#fff}
+.brand{display:flex;align-items:center;gap:16px}
+.brand img{height:46px;width:auto;display:block}
+.top .meta{color:#c9cdd1}
 .top .wrap{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:flex-end;justify-content:space-between;padding-top:20px;padding-bottom:14px}
-h1{font:600 30px/1.1 var(--display);margin:0;letter-spacing:-.01em}
+h1{font:500 28px/1.1 var(--display);margin:0;color:#fff}
 .meta{color:var(--ink-2);font-size:13px}
 nav.tabs{display:flex;gap:4px;flex-wrap:wrap;padding-top:6px}
-nav.tabs a{padding:9px 14px;border-radius:8px 8px 0 0;text-decoration:none;color:var(--ink-2);font-weight:600;font-size:14px;border:1px solid transparent;border-bottom:none}
-nav.tabs a[aria-current="page"]{color:var(--ink);background:var(--bg);border-color:var(--line)}
+nav.tabs a{padding:9px 14px;text-decoration:none;color:#c9cdd1;font-weight:600;font-size:14px;border-bottom:3px solid transparent}
+nav.tabs a:hover{color:#fff}
+nav.tabs a[aria-current="page"]{color:#fff;border-bottom-color:var(--copper)}
 nav.tabs a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 main{padding:22px 0 60px}
 h2{font:600 22px/1.2 var(--display);margin:28px 0 4px;text-wrap:balance}
@@ -43,19 +41,20 @@ h2:first-child{margin-top:0}
 .sub{color:var(--ink-2);margin:0 0 14px;max-width:70ch}
 .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
 .tile{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:2px;text-decoration:none;color:inherit}
-.tile b{font:600 32px/1.1 var(--display)}
+.tile b{font:600 32px/1.1 var(--display);color:var(--ink)}
 .tile span{color:var(--ink-2);font-size:13px}
 .tile.alert{border-left:4px solid var(--warn)}
 .note{background:var(--accent-soft);border-radius:10px;padding:12px 16px;margin:14px 0;max-width:80ch}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
-.card.nous{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.card.nous{border-color:var(--copper);box-shadow:0 0 0 1px var(--copper) inset}
+.card.nous .ag{background:var(--copper)}
 .ph{position:relative;aspect-ratio:3/2;overflow:hidden;flex:none;background:linear-gradient(135deg,var(--accent-soft),var(--line));display:block}
 .ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 .ph .noimg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--ink-2);font-size:13px;text-align:center;padding:10px}
-.ph .ag{position:absolute;left:8px;top:8px;background:rgba(19,35,58,.82);color:#fff;font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px}
+.ph .ag{position:absolute;left:8px;top:8px;background:rgba(28,31,33,.85);color:#fff;font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px}
 .ph .ev{position:absolute;right:8px;top:8px;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px}
-.ev.nouveau{background:var(--accent);color:#fff}.ev.baisse{background:var(--good);color:#fff}.ev.hausse{background:var(--warn);color:#fff}.ev.retire{background:var(--bad);color:#fff}.ev.remis{background:var(--ink-2);color:#fff}
+.ev.nouveau{background:var(--copper);color:#fff}.ev.baisse{background:var(--good);color:#fff}.ev.hausse{background:var(--warn);color:#fff}.ev.retire{background:var(--bad);color:#fff}.ev.remis{background:var(--ink-2);color:#fff}
 .cb{padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px;flex:1}
 .price{font:600 20px/1.15 var(--display)}
 .price s{color:var(--ink-2);font:400 14px var(--body);margin-left:6px}
@@ -77,7 +76,7 @@ td.n,th.n{text-align:right}
 tr.us td{background:var(--accent-soft);font-weight:600}
 .bars{display:flex;flex-direction:column;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
 .bar{display:grid;grid-template-columns:120px 1fr 90px;gap:10px;align-items:center;font-size:14px}
-.bar i{display:block;height:14px;border-radius:4px;background:var(--accent)}
+.bar i{display:block;height:14px;border-radius:4px;background:var(--copper)}
 .bar em{font-style:normal;text-align:right;font-weight:600}
 details.cmp{font-size:13px}
 details.cmp summary{cursor:pointer;color:var(--accent);font-weight:600}
@@ -91,9 +90,10 @@ footer{color:var(--ink-2);font-size:12px;padding:20px 0 40px;border-top:1px soli
 <body>
 <header class="top">
   <div class="wrap">
-    <div>
-      <h1>Veille Cap Ferret</h1>
-      <div class="meta" id="meta">Chargement…</div>
+    <div class="brand">
+      <img src="https://www.agence-cap-ferret.fr/wp-content/uploads/2022/03/Fichier-3.svg" alt="Agence Immobilière du Cap" onerror="this.remove()">
+      <div><h1>Veille Cap Ferret</h1>
+      <div class="meta" id="meta">Chargement…</div></div>
     </div>
     <nav class="tabs" aria-label="Sections">
       <a href="#semaine">Nouveautés</a>
@@ -145,7 +145,7 @@ function card(b, opts = {}) {
   return `<article class="card${b.nous ? " nous" : ""}">
     <a class="ph" href="${esc(safeUrl(b.url))}" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir l'annonce">
       ${img}<span class="noimg">${b.image ? "" : "Photo sur l'annonce"}</span>
-      <span class="ag">${esc(b.nous ? "Vous" : b.agence)}</span>${ev ? `<span class="ev ${ev.type}">${evLabel}</span>` : ""}
+      <span class="ag">${esc(b.nous ? "Agence du Cap" : b.agence)}</span>${ev ? `<span class="ev ${ev.type}">${evLabel}</span>` : ""}
     </a>
     <div class="cb">
       <div class="price">${eur(b.prix)}${old}${delta}</div>
