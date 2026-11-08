@@ -211,7 +211,7 @@ function viewVos() {
         if (p !== null) pills.push(`<span class="pill ${p > 0.2 ? "bad" : p < -0.2 ? "good" : ""}">${p > 0 ? "+" : ""}${Math.round(p * 100)} % vs marché</span>`);
         else if (!r.n.prix) pills.push(`<span class="pill">Prix sur demande</span>`);
         if (r.n.first_seen < yearAgo) pills.push(`<span class="pill warn">En ligne depuis le ${dfr(r.n.first_seen)}</span>`);
-        r.m.forEach(c => pills.push(`<a class="pill acc" href="${esc(safeUrl(c.url))}" target="_blank" rel="noopener noreferrer">Aussi chez ${esc(c.agence)}${c.prix && r.n.prix ? (Math.abs(c.prix / r.n.prix - 1) < .01 ? " (même prix)" : ` (${fmt(c.prix)} €)`) : ""}</a>`));
+        r.m.forEach(c => pills.push(`<a class="pill acc" href="${esc(safeUrl(c.url))}" target="_blank" rel="noopener noreferrer">${c._ver ? "Aussi chez" : "Peut-être aussi chez"} ${esc(c.agence)}${c.prix && r.n.prix ? (Math.abs(c.prix / r.n.prix - 1) < .01 ? " (même prix)" : ` (${fmt(c.prix)} €)`) : ""}</a>`));
         const ex = r.c.pool.slice().sort((a, b) => Math.abs(a.surface - r.n.surface) - Math.abs(b.surface - r.n.surface)).slice(0, 5);
         const cmp = r.c.med ? `<div class="facts"><span>Marché (${esc(r.c.zone)}, ${r.c.pool.length} biens) : ${fmt(r.c.med)} €/m²${r.c.pool.length >= 4 ? `, de ${fmt(r.c.p25)} à ${fmt(r.c.p75)}` : ""}</span></div>
           <details class="cmp"><summary>Voir les biens comparables</summary><ul>${ex.map(c => `<li><a href="${esc(safeUrl(c.url))}" target="_blank" rel="noopener noreferrer">${esc(c.agence)}</a> · ${fmt(c.surface)} m² · ${eur(c.prix)} · ${fmt(pm2(c))} €/m²${c.secteur ? " · " + esc(c.secteur) : ""}</li>`).join("")}</ul></details>` : "";
