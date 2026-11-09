@@ -147,6 +147,27 @@ details.cmp ul{margin:6px 0 0;padding-left:18px}
 .e-A{background:#009a52}.e-B{background:#52b153}.e-C{background:#a5cc74;color:#1c1f21}.e-D{background:#f4e70f;color:#1c1f21}.e-E{background:#f0b40f;color:#1c1f21}.e-F{background:#eb8235}.e-G{background:#d7221f}
 .filters .chk{flex-direction:row;align-items:center;gap:8px;padding-bottom:8px}
 .filters .chk input{min-width:0;width:16px;height:16px;accent-color:var(--copper)}
+.agcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.agcard{display:grid;grid-template-columns:1fr auto;grid-template-areas:"n chev" "s chev" "a chev";gap:2px 10px;align-items:center;text-decoration:none;color:var(--ink);background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-height:44px}
+[data-look="clair"] .agcard{background:var(--panel)}
+.agcard:active{border-color:var(--copper)}
+.agn{grid-area:n;font:600 17px var(--body)}
+.agstock{grid-area:s;color:var(--ink-2);font-size:13px}.agstock b{color:var(--ink);font-weight:700}
+.agact{grid-area:a;display:flex;gap:12px;font:700 14px var(--body);margin-top:4px}
+.agact .up{color:var(--accent)}.agact .dn{color:var(--good)}.agact .rm{color:var(--bad)}
+.chev{grid-area:chev;font-size:26px;color:var(--ink-2)}
+.back{display:inline-block;padding:10px 0;font-weight:600;text-decoration:none}
+details.big{margin-top:18px;font-size:14px}details.big>summary{padding:10px 0}
+.feed{display:flex;flex-direction:column;gap:8px}
+.fi{display:flex;gap:12px;align-items:center;text-decoration:none;color:var(--ink);background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:8px}
+[data-look="clair"] .fi{background:var(--panel)}
+.fimg{flex:none;width:72px;height:54px;border-radius:8px;overflow:hidden;background:#2a2e32;position:relative}
+.fimg img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ftx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ftx .ev{align-self:flex-start;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px}
+.ftx b{font:600 16px var(--display)}.ftx s{color:var(--ink-2);font:400 12px var(--body)}
+.ftx .meta{font-size:12px;color:var(--ink-2)}
+@media (max-width:520px){.agcards{grid-template-columns:1fr}.tiles .tile b{font-size:22px}}
 footer{color:var(--ink-2);font-size:12px;padding:20px 0 40px;border-top:1px solid var(--line)}
 @media (max-width:520px){
   .hd{padding-top:12px}
@@ -353,7 +374,9 @@ function relevesEnRetard() {
 }
 function bandeauReleves() {
   const L = relevesEnRetard(); if (!L.length) return "";
-  return `<div class="stale" role="status"><b>Relevé incomplet :</b> ${L.map(x => `${esc(x.n === "Agence du Cap" ? "votre site" : x.n)} (dernier relevé réussi ${x.ok ? "le " + dfr(x.ok) : "jamais"})`).join(", ")}. Leurs biens sont affichés tels qu'au dernier relevé réussi ; aucun n'est marqué retiré à tort.</div>`;
+  const last = L.map(x => x.ok).filter(Boolean).sort()[0];
+  const qui = L.length >= D.agences.length - 1 ? "toutes les agences" : L.map(x => x.n === "Agence du Cap" ? "votre site" : x.n).join(", ");
+  return `<div class="stale" role="status"><b>Dernier relevé en échec</b> (${esc(qui)}). Données affichées : relevé du ${last ? dfr(last) : "–"}.</div>`;
 }
 
 function viewSemaine() {
@@ -425,6 +448,51 @@ function viewVos() {
   return h;
 }
 
+
+const slugAg = a => a.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+function activite(a, jours) {
+  const from = new Date(Date.now() - jours * 864e5).toISOString().slice(0, 10);
+  const E = D.evenements.filter(e => e.date >= from && BYID[e.id] && BYID[e.id].agence === a && D.releves.length > 1);
+  const c = t => E.filter(e => e.type === t).length;
+  return {E, nouveau: c("nouveau"), baisse: c("baisse"), retire: c("retire")};
+}
+function barres(rows) {
+  const max = Math.max(1, ...rows.map(r => r[1]));
+  return `<div class="bars">${rows.map(([l, v]) => `<div class="bar"><span>${esc(l)}</span><i style="width:${(v / max * 100).toFixed(1)}%"></i><em>${v}</em></div>`).join("")}</div>`;
+}
+function viewAgence(slug) {
+  const ag = D.agences.find(x => slugAg(x.nom) === slug);
+  if (!ag) return `<div class="empty">Agence introuvable. <a href="#concurrents">Retour</a></div>`;
+  const a = ag.nom, L = ACT.filter(b => b.agence === a), A30 = activite(a, 30);
+  const dur = median(L.map(b => days(enLigne(b))));
+  const cache = L.length ? Math.round(L.filter(b => !b.prix).length / L.length * 100) : 0;
+  const part = L.filter(b => MATCH_REV[b.id]).length;
+  const secs = {}; L.forEach(b => { const k = b.secteur || "Non précisé"; secs[k] = (secs[k] || 0) + 1; });
+  const G = [["< 1 M€", 0, 1e6], ["1 – 2 M€", 1e6, 2e6], ["2 – 3 M€", 2e6, 3e6], ["3 – 5 M€", 3e6, 5e6], ["> 5 M€", 5e6, 1e12]].map(([l, x, y]) => [l, L.filter(b => b.prix && b.prix >= x && b.prix < y).length]);
+  const e = (D.etat_releves || {})[a] || {};
+  const evs = A30.E.slice().sort((x, y) => y.date > x.date ? 1 : -1).slice(0, 12);
+  const lbl = {nouveau: "Nouveau", baisse: "Baisse", hausse: "Hausse", retire: "Retiré", remis: "Remis en vente"};
+  return `<a class="back" href="#concurrents">‹ Toutes les agences</a>
+  <h2>${esc(a)}</h2><p class="sub">${ag.note ? esc(ag.note) + " · " : ""}Dernier relevé ${e.ok ? "le " + dfr(e.ok) : "–"}${e.echec && (!e.ok || e.ok < D.maj) ? ` · <span class="pill bad">échec le ${dfr(e.echec)}</span>` : ""} · <a href="${esc(safeUrl(ag.site))}" target="_blank" rel="noopener noreferrer">site</a></p>
+  <div class="tiles">
+    <div class="tile"><b>${L.length}</b><span>biens en vente</span></div>
+    <div class="tile"><b>+${A30.nouveau}</b><span>nouveaux (30 j)</span></div>
+    <div class="tile"><b>${A30.baisse}</b><span>baisses de prix (30 j)</span></div>
+    <div class="tile"><b>${A30.retire}</b><span>retirés / vendus (30 j)</span></div>
+    <div class="tile"><b>${median(L.map(b => b.prix)) ? fmt(median(L.map(b => b.prix)) / 1e6 * 10) / 10 + " M€" : "–"}</b><span>prix médian</span></div>
+    <div class="tile"><b>${cache} %</b><span>prix sur demande</span></div>
+    <div class="tile"><b>${dur != null ? duree(dur) : "–"}</b><span>${days(D.releves[0]) >= 60 ? "durée médiane en ligne" : "suivi depuis (durée en ligne à venir)"}</span></div>
+    <div class="tile"><b>${part}</b><span>biens aussi chez vous</span></div>
+  </div>
+  ${D.releves.length < 2 ? `<p class="sub">L'activité (nouveaux, baisses, retraits) se remplit à partir du deuxième relevé.</p>` : ""}
+  ${evs.length ? `<h2>Activité récente</h2><div class="feed">${evs.map(ev => { const b = BYID[ev.id]; return `<a class="fi" href="${esc(safeUrl(b.url))}" target="_blank" rel="noopener noreferrer">
+     <span class="fimg">${b.image ? `<img src="${esc(safeUrl(b.image))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}</span>
+     <span class="ftx"><span class="ev ${ev.type}">${lbl[ev.type]}</span><b>${eur(ev.prix)}${ev.avant ? ` <s>${fmt(ev.avant)} €</s>` : ""}</b><span class="meta">${esc(b.secteur || "")}${b.surface ? " · " + fmt(b.surface) + " m²" : ""} · ${dfr(ev.date)}</span></span></a>`; }).join("")}</div>` : ""}
+  <h2>Où elle vend</h2>${barres(Object.entries(secs).sort((x, y) => y[1] - x[1]))}
+  <h2>Gammes de prix</h2>${barres(G)}
+  <h2>Ses biens en vente</h2><div class="grid">${L.slice().sort((x, y) => (y.prix || 0) - (x.prix || 0)).map(b => card(b, {extra: MATCH_REV[b.id] ? `<div class="pills"><span class="pill acc">Aussi chez vous</span></div>` : ""})).join("")}</div>`;
+}
+
 function viewConc() {
   const ags = D.agences.map(a => a.nom);
   const st = ags.map(a => {
@@ -437,10 +505,15 @@ function viewConc() {
   ACT.filter(b => cat(b.type) === "M" && pm2(b) && b.secteur).forEach(b => (sects[b.secteur] = sects[b.secteur] || []).push(pm2(b)));
   const S = Object.entries(sects).filter(([, v]) => v.length >= 5).map(([s, v]) => [s, median(v), v.length]).sort((a, b) => b[1] - a[1]);
   const max = Math.max(...S.map(s => s[1]));
-  return bandeauReleves() + `<h2>Les agences</h2><p class="sub">Biens à vendre sur la presqu'île, relevés sur le site propre de chaque agence. Les prix sur demande sont exclus des médianes.</p>
+  return bandeauReleves() + `<h2>Les agences</h2><p class="sub">Activité des 30 derniers jours. Touchez une agence pour voir sa fiche.</p>
+  <div class="agcards">${st.filter(x => x.a !== "Agence du Cap").map(x => { const A = activite(x.a, 30); return `<a class="agcard" href="#ag-${slugAg(x.a)}">
+    <span class="agn">${esc(x.a)}</span><span class="agstock"><b>${x.n}</b> en vente</span>
+    <span class="agact"><span class="up" title="Nouveaux">+${A.nouveau}</span><span class="dn" title="Baisses">↓${A.baisse}</span><span class="rm" title="Retirés">−${A.retire}</span></span>
+    <span class="chev" aria-hidden="true">›</span></a>`; }).join("")}</div>
+  <details class="cmp big"><summary>Tableau comparatif des agences</summary>
   <div class="tablewrap"><table><thead><tr><th>Agence</th><th class="n">Biens</th><th class="n">Maisons</th><th class="n">Apparts</th><th class="n">Prix sur demande</th><th class="n">Prix médian</th><th class="n">€/m² maisons</th><th class="n">Surface maisons</th><th class="n">Retirés depuis le début</th><th>Dernier relevé</th><th>Site</th></tr></thead><tbody>
   ${st.map(s => `<tr class="${s.a === "Agence du Cap" ? "us" : ""}"><td>${esc(s.a === "Agence du Cap" ? "Vous (Agence du Cap)" : s.a)}${s.note ? `<div class="meta">${esc(s.note)}</div>` : ""}</td><td class="n">${s.n}</td><td class="n">${s.m}</td><td class="n">${s.ap}</td><td class="n">${Math.round(s.cache * 100)} %</td><td class="n">${s.prix ? fmt(s.prix) + " €" : "–"}</td><td class="n">${s.m2 ? fmt(s.m2) + " €" : "–"}</td><td class="n">${s.surf ? fmt(s.surf) + " m²" : "–"}</td><td class="n">${s.ret}</td><td>${(() => { const e = (D.etat_releves || {})[s.a] || {}; return e.echec && (!e.ok || e.ok < D.maj) ? `<span class="pill bad">Échec le ${dfr(e.echec)}</span>` : e.ok ? `<span class="pill good">${dfr(e.ok)}</span>` : "–"; })()}</td><td><a href="${esc(safeUrl(s.site))}" target="_blank" rel="noopener noreferrer">Ouvrir</a></td></tr>`).join("")}
-  </tbody></table></div>
+  </tbody></table></div></details>
   <h2>Biens qui traînent chez les concurrents</h2><p class="sub">Annonces en ligne depuis le plus longtemps, d'après la date affichée sur l'annonce quand elle existe, sinon depuis le premier relevé. Ce sont souvent des vendeurs prêts à écouter une autre agence.</p>
   ${(() => { const L = CONC.filter(b => b.statut === "actif").map(b => [b, days(enLigne(b))]).filter(x => x[1] >= 120).sort((a, b) => b[1] - a[1]).slice(0, 12);
     return L.length ? `<div class="grid">${L.map(([b, n]) => card(b, {extra: `<div class="pills"><span class="pill warn">${duree(n)} en ligne</span>${b.hist.length > 1 && b.hist[0][1] && b.prix && b.prix < b.hist[0][1] ? `<span class="pill good">${Math.round((b.prix / b.hist[0][1] - 1) * 100)} % depuis le début</span>` : ""}</div>`})).join("")}</div>` : `<div class="empty">Pas encore assez d'historique : la durée en ligne se calcule à partir de la date affichée sur les annonces et s'enrichit à chaque relevé.</div>`; })()}
@@ -582,9 +655,10 @@ let MATCH_REV = {};
 function route() {
   const v = (location.hash || "#semaine").slice(1);
   const views = {semaine: viewSemaine, "vos-biens": viewVos, concurrents: viewConc, ventes: viewVentes, dpe: viewDPE, tous: viewTous};
-  const f = views[v] || viewSemaine;
-  document.querySelectorAll("nav.tabs a").forEach(a => a.setAttribute("aria-current", a.getAttribute("href") === "#" + (views[v] ? v : "semaine") ? "page" : "false"));
+  const f = v.startsWith("ag-") ? () => viewAgence(v.slice(3)) : (views[v] || viewSemaine);
+  document.querySelectorAll("nav.tabs a").forEach(a => a.setAttribute("aria-current", a.getAttribute("href") === "#" + (v.startsWith("ag-") ? "concurrents" : views[v] ? v : "semaine") ? "page" : "false"));
   document.getElementById("app").innerHTML = f();
+  window.scrollTo(0, 0);
   etiqueter();
 }
 
