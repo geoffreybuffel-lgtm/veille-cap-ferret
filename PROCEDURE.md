@@ -31,6 +31,9 @@ Chaque relevé met `data.json` à jour avec `tools/update.py`, puis pousse sur `
    - Une Villa et des Vignes : `https://www.unevillaetdesvignes.fr/offres?lstlocalisation=3` (toutes les pages, presqu'île seulement).
    - Cabinet Bedin : `https://www.cabinet-bedin.com/agence-immobiliere/cap-ferret?page=1..3` et `.../claouey?page=1..3`.
    - Émile Garcin : `https://www.emilegarcin.com/fr/annonces/vente-immobilier/cap-ferret` (la page `.../lege-cap-ferret` ne filtre pas : ne pas l'utiliser).
+   Outil de lecture : curl suffit pour les autres agences. **Barnes et Elliman refusent curl (403 renvoyé par leur site)** : les lire uniquement avec l'outil WebFetch.
+   Pour Elliman, partir de `https://www.elliman.fr/sitemap_index.xml`, puis `propriete-sitemap.xml` à `propriete-sitemap5.xml`.
+   Les domaines autorisés dans le réseau de la session sont : agence-cap-ferret.fr, barnes-international.com, agence-premiere-ligne.com, john-taylor.fr, maxwellbaynes.com, capferretpylasothebysrealty.com, elliman.fr, unevillaetdesvignes.fr, cabinet-bedin.com, emilegarcin.com. Un refus « CONNECT 403 » du proxy = domaine absent de cette liste (réglage Capacités de claude.ai), pas une panne du site.
    Si un site ne répond pas, ne pas écrire de CSV pour cette agence : ses biens ne seront pas marqués retirés.
 2. `python3 tools/update.py releve/ AAAA-MM-JJ` (date du jour, heure de Paris).
 3. Vérifier la sortie : si une agence a plus de 30 % de ses biens « retirés » d'un coup, le relevé de cette agence est sans doute incomplet :
