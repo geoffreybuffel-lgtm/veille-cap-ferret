@@ -138,6 +138,15 @@ details.cmp ul{margin:6px 0 0;padding-left:18px}
 .lockbox .err{color:#f0a39a;font-size:13px;min-height:1em;margin:0;text-align:center}
 .stale{background:var(--bad-soft);color:var(--bad);border-radius:10px;padding:10px 14px;margin:0 0 14px;font-size:14px}
 .btn{font:600 13px var(--body);padding:8px 12px;border:1px solid rgba(255,255,255,.18);border-radius:9px;background:transparent;color:var(--ink);cursor:pointer}
+.dpes{display:flex;flex-direction:column;gap:8px}
+.dpe{display:flex;gap:14px;align-items:flex-start;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+[data-look="clair"] .dpe{background:var(--panel)}
+.dpe-b{display:flex;flex-direction:column;gap:5px;min-width:0}
+.dpe-b b{font-weight:600;overflow-wrap:anywhere}
+.lab{flex:none;width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font:700 16px var(--body);color:#fff;background:#666}
+.e-A{background:#009a52}.e-B{background:#52b153}.e-C{background:#a5cc74;color:#1c1f21}.e-D{background:#f4e70f;color:#1c1f21}.e-E{background:#f0b40f;color:#1c1f21}.e-F{background:#eb8235}.e-G{background:#d7221f}
+.filters .chk{flex-direction:row;align-items:center;gap:8px;padding-bottom:8px}
+.filters .chk input{min-width:0;width:16px;height:16px;accent-color:var(--copper)}
 footer{color:var(--ink-2);font-size:12px;padding:20px 0 40px;border-top:1px solid var(--line)}
 @media (max-width:520px){
   .hd{padding-top:12px}
@@ -190,6 +199,7 @@ footer{color:var(--ink-2);font-size:12px;padding:20px 0 40px;border-top:1px soli
       <a href="#vos-biens">Vos biens</a>
       <a href="#concurrents">Concurrents</a>
       <a href="#ventes">Prix vendus</a>
+      <a href="#dpe">DPE récents</a>
       <a href="#tous">Tous les biens</a>
     </nav>
   </div>
@@ -515,10 +525,63 @@ function etiqueter(root = document) {
     t.querySelectorAll("tbody tr").forEach(tr => [...tr.children].forEach((td, i) => { if (h[i]) td.dataset.label = h[i]; }));
   });
 }
+
+// DPE récents (base publique ADEME, licence ouverte), lus en direct à chaque ouverture.
+let DPE = null, DPE_ERR = false, DPE_P = null;
+function loadDPE() {
+  if (DPE_P) return DPE_P;
+  const d0 = new Date(Date.now() - 120 * 864e5).toISOString().slice(0, 10);
+  const sel = "date_etablissement_dpe,type_batiment,surface_habitable_logement,etiquette_dpe,adresse_ban,annee_construction,_geopoint,numero_dpe";
+  DPE_P = (async () => {
+    let url = `https://data.ademe.fr/data-fair/api/v1/datasets/dpe03existant/lines?size=1000&qs=${encodeURIComponent(`code_insee_ban:33236 AND date_etablissement_dpe:>=${d0}`)}&sort=-date_etablissement_dpe&select=${sel}`, R = [];
+    while (url && R.length < 3000) { const j = await (await fetch(url)).json(); R = R.concat(j.results || []); url = j.next || null; }
+    DPE = R.filter(x => x.type_batiment === "maison" || x.type_batiment === "appartement").map(x => {
+      const [lat, lon] = (x._geopoint || "0,0").split(",").map(Number);
+      return {id: x.numero_dpe, d: x.date_etablissement_dpe, typ: x.type_batiment === "maison" ? "M" : "A", s: x.surface_habitable_logement, e: x.etiquette_dpe,
+        adr: (x.adresse_ban || "").replace(/\s*339[57]0\s*Lège-Cap-Ferret\s*$/i, ""), an: x.annee_construction, sect: lat ? secteurDVF(lat, lon) : null};
+    }).filter(x => x.sect !== "Lège");
+  })().catch(() => { DPE_ERR = true; });
+  return DPE_P;
+}
+function dpeEnVente(x) {
+  if (!x.s) return [];
+  return ACT.filter(b => cat(b.type) === x.typ && b.surface && Math.abs(b.surface - x.s) / x.s <= 0.08 && (!b.secteur || !x.sect || b.secteur === x.sect || b.secteur === "Presqu'île"));
+}
+function viewDPE() {
+  if (!DPE && !DPE_ERR) { loadDPE().then(() => { if ((location.hash || "").slice(1) === "dpe") route(); }); return `<h2>DPE récents</h2><p class="sub">Chargement…</p>`; }
+  if (DPE_ERR || !DPE) return `<h2>DPE récents</h2><div class="empty">La base de l'ADEME ne répond pas pour le moment. Réessayez dans quelques minutes.</div>`;
+  setTimeout(() => {
+    const draw = () => {
+      const j = +document.getElementById("fd-per").value, ty = document.getElementById("fd-type").value, pi = document.getElementById("fd-piste").checked;
+      const from = new Date(Date.now() - j * 864e5).toISOString().slice(0, 10);
+      const L = DPE.filter(x => x.d >= from && (!ty || x.typ === ty)).map(x => [x, dpeEnVente(x)]).filter(([x, v]) => !pi || !v.length);
+      document.getElementById("fd-count").textContent = `${L.length} DPE`;
+      document.getElementById("fd-list").innerHTML = L.map(([x, v]) => `<div class="dpe">
+        <span class="lab e-${esc(x.e)}" title="Étiquette énergie">${esc(x.e || "?")}</span>
+        <div class="dpe-b"><b>${esc(x.adr || "Adresse non précisée")}</b>
+          <span class="facts"><span>${dfr(x.d)}</span><span>${x.typ === "M" ? "Maison" : "Appartement"}</span>${x.s ? `<span>${fmt(x.s)} m²</span>` : ""}${x.an ? `<span>construit en ${x.an}</span>` : ""}${x.sect ? `<span>${esc(x.sect)}</span>` : ""}</span>
+          <span class="pills">${v.length ? v.slice(0, 3).map(b => `<a class="pill acc" href="${esc(safeUrl(b.url))}" target="_blank" rel="noopener noreferrer">Peut-être en vente chez ${esc(b.nous ? "vous" : b.agence)} · ${eur(b.prix)}</a>`).join("") : `<span class="pill good">Piste : en vente nulle part</span>`}</span>
+        </div></div>`).join("") || `<div class="empty">Aucun DPE sur la période.</div>`;
+    };
+    ["fd-per", "fd-type", "fd-piste"].forEach(i => document.getElementById(i).addEventListener("input", draw)); draw();
+  });
+  const f30 = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10), D30 = DPE.filter(x => x.d >= f30);
+  const pistes = D30.filter(x => !dpeEnVente(x).length).length;
+  return `<h2>DPE récents</h2><p class="sub">Un DPE est obligatoire avant une vente ou une location. Les nouveaux DPE signalent des propriétaires qui préparent peut-être une vente.</p>
+  <div class="tiles"><div class="tile"><b>${D30.length}</b><span>DPE sur 30 jours</span></div>
+  <div class="tile"><b>${D30.filter(x => x.typ === "M").length}</b><span>maisons</span></div>
+  <div class="tile alert"><b>${pistes}</b><span>pistes : en vente nulle part</span></div></div>
+  <div class="filters"><label for="fd-per">Période<select id="fd-per"><option value="30">30 jours</option><option value="60">60 jours</option><option value="120">4 mois</option></select></label>
+  <label for="fd-type">Type<select id="fd-type"><option value="">Tous</option><option value="M">Maisons</option><option value="A">Appartements</option></select></label>
+  <label class="chk" for="fd-piste"><span>Pistes seulement</span><input id="fd-piste" type="checkbox"></label></div>
+  <p class="count" id="fd-count"></p><div id="fd-list" class="dpes"></div>
+  <p class="sub" style="margin-top:14px">Source : base publique des DPE de l'ADEME, mise à jour en continu. « Peut-être en vente » : une annonce suivie a une surface proche (±8 %) dans le même secteur. Un DPE peut aussi servir à une location.</p>`;
+}
+
 let MATCH_REV = {};
 function route() {
   const v = (location.hash || "#semaine").slice(1);
-  const views = {semaine: viewSemaine, "vos-biens": viewVos, concurrents: viewConc, ventes: viewVentes, tous: viewTous};
+  const views = {semaine: viewSemaine, "vos-biens": viewVos, concurrents: viewConc, ventes: viewVentes, dpe: viewDPE, tous: viewTous};
   const f = views[v] || viewSemaine;
   document.querySelectorAll("nav.tabs a").forEach(a => a.setAttribute("aria-current", a.getAttribute("href") === "#" + (views[v] ? v : "semaine") ? "page" : "false"));
   document.getElementById("app").innerHTML = f();
